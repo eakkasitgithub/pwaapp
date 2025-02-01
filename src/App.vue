@@ -200,24 +200,31 @@ export default {
     },
     async saveEmployee() {
       try {
+        const now = new Date().toISOString(); // Ensure `now` is defined
+
         if (this.isEditing) {
           // Update existing employee
           const { data, error } = await supabase
             .from('tbemployee')
-            .update(this.employeeForm)
+            .update({
+              employeename: this.employeeForm.employeename,
+              age: this.employeeForm.age,
+              phone: this.employeeForm.phone,
+              updatedatetime: now // Update timestamp
+            })
             .eq('id', this.employeeForm.id);
 
           if (error) throw error;
           console.log('Employee updated successfully:', data);
         } else {
-          // Create new employee (exclude `id` since it's auto-incrementing)
+          // Create new employee
           const { data, error } = await supabase
             .from('tbemployee')
             .insert([{
               employeename: this.employeeForm.employeename,
               age: this.employeeForm.age,
               phone: this.employeeForm.phone,
-              createdatetime: now,
+              createdatetime: now, // Add timestamp for creation
               updatedatetime: now
             }]);
 
@@ -225,8 +232,8 @@ export default {
           console.log('Employee created successfully:', data);
         }
 
-        await this.fetchEmployees(); // Refresh the employee list
-        this.closeEmployeeForm(); // Close the form
+        await this.fetchEmployees(); // Refresh employee list
+        this.closeEmployeeForm(); // Close the form modal
       } catch (error) {
         console.error('Error saving employee:', error);
         alert('Failed to save employee. Check the console for details.');
