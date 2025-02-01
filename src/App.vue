@@ -2,6 +2,7 @@
   <v-app>
     <v-main>
       <v-container class="container-fluid">
+        <!-- Login form (unchanged) -->
         <div v-if="!user" class="row justify-content-center mt-5">
           <div class="col-md-6">
             <div class="card shadow">
@@ -24,6 +25,7 @@
           </div>
         </div>
 
+        <!-- Dashboard (updated to include employee form) -->
         <div v-else>
           <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
             <div class="container-fluid">
@@ -32,26 +34,29 @@
             </div>
           </nav>
 
+          <!-- Employee Management Section -->
           <div class="card shadow mb-4">
             <div class="card-header bg-primary text-white">Manage Employees</div>
             <div class="card-body">
-              <button class="btn btn-success mb-3" @click="showCreateModal = true">+ Create New Employee</button>
+              <!-- Button to open the employee form -->
+              <button class="btn btn-success mb-3" @click="openEmployeeForm">+ Create New Employee</button>
               <input v-model="searchQuery" class="form-control mb-3" placeholder="Search Employees">
 
+              <!-- Employee Table -->
               <table class="table table-striped table-hover">
                 <thead class="table-dark">
                   <tr>
-                    <th class="sortable" @click="sort('id')">ID <span v-if="sortKey === 'id'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
-                    <th class="sortable" @click="sort('employeename')">Employee Name <span v-if="sortKey === 'employeename'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
-                    <th class="sortable" @click="sort('age')">Age <span v-if="sortKey === 'age'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
-                    <th class="sortable" @click="sort('phone')">Phone <span v-if="sortKey === 'phone'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
-                    <th class="sortable" @click="sort('createdatetime')">Created <span v-if="sortKey === 'createdatetime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
-                    <th class="sortable" @click="sort('updatedatetime')">Updated <span v-if="sortKey === 'updatedatetime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
+                    <th @click="sort('id')">ID</th>
+                    <th @click="sort('employeename')">Employee Name</th>
+                    <th @click="sort('age')">Age</th>
+                    <th @click="sort('phone')">Phone</th>
+                    <th @click="sort('createdatetime')">Created</th>
+                    <th @click="sort('updatedatetime')">Updated</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="employee in employees" :key="employee.id">
+                  <tr v-for="employee in filteredEmployees" :key="employee.id">
                     <td>{{ employee.id }}</td>
                     <td>{{ employee.employeename }}</td>
                     <td>{{ employee.age }}</td>
@@ -65,6 +70,36 @@
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <!-- Employee Form Modal -->
+          <div v-if="showEmployeeForm" class="modal-overlay">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">{{ isEditing ? 'Edit Employee' : 'Create New Employee' }}</h5>
+                <button type="button" class="btn-close" @click="closeEmployeeForm"></button>
+              </div>
+              <div class="modal-body">
+                <form @submit.prevent="saveEmployee">
+                  <div class="mb-3">
+                    <label class="form-label">Employee Name</label>
+                    <input v-model="employeeForm.employeename" type="text" class="form-control" required>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Age</label>
+                    <input v-model="employeeForm.age" type="number" class="form-control" required>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Phone</label>
+                    <input v-model="employeeForm.phone" type="text" class="form-control" required>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @click="closeEmployeeForm">Cancel</button>
+                    <button type="submit" class="btn btn-primary">{{ isEditing ? 'Update' : 'Create' }}</button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
         </div>
@@ -81,42 +116,119 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 export default {
+  name: 'App',
   data() {
     return {
       user: null,
+      loginForm: { email: '', password: '' },
+      loginError: null,
       employees: [],
+      searchQuery: '',
       sortKey: 'id',
       sortOrder: 'asc',
-      showCreateModal: false,
-      newEmployee: { employeename: '', age: '', phone: '' }
+      showEmployeeForm: false, // Controls visibility of the employee form
+      isEditing: false, // Determines if the form is in edit mode
+      employeeForm: { // Stores data for the employee form
+        id: null,
+        employeename: '',
+        age: '',
+        phone: ''
+      }
     }
   },
   async created() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession()
     if (session) {
-      this.user = session.user;
-      await this.fetchEmployees();
+      this.user = session.user
+      await this.fetchEmployees()
+    }
+    supabase.auth.onAuthStateChange((event, session) => {
+      this.user = session ? session.user : null
+      if (this.user) this.fetchEmployees()
+      else this.employees = []
+    })
+  },
+  computed: {
+    filteredEmployees() {
+      return this.employees.filter(emp =>
+        Object.values(emp).some(value =>
+          String(value).toLowerCase().includes(this.searchQuery.toLowerCase())
+        )
+      ).sort((a, b) => {
+        let modifier = this.sortOrder === 'asc' ? 1 : -1;
+        return a[this.sortKey] > b[this.sortKey] ? modifier : -modifier;
+      });
     }
   },
   methods: {
-    async fetchEmployees() {
-      const { data, error } = await supabase.from('tbemployee').select('*').is('deletedatetime', null);
-      if (error) console.error('Error fetching employees:', error);
-      else this.employees = data;
+    async handleLogin() {
+      this.loginError = null
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: this.loginForm.email,
+          password: this.loginForm.password
+        })
+        if (error) this.loginError = error.message
+        else this.user = data.user
+      } catch (err) {
+        this.loginError = 'Login failed. Try again.'
+      }
     },
-    async createEmployee() {
-      if (!this.newEmployee.employeename || !this.newEmployee.age || !this.newEmployee.phone) return;
-      const now = new Date().toISOString();
-      await supabase.from('tbemployee').insert({
-        employeename: this.newEmployee.employeename,
-        age: this.newEmployee.age,
-        phone: this.newEmployee.phone,
-        createdatetime: now,
-        updatedatetime: now
-      });
-      this.showCreateModal = false;
-      this.newEmployee = { employeename: '', age: '', phone: '' };
-      this.fetchEmployees();
+    async handleLogout() {
+      await supabase.auth.signOut()
+      this.user = null
+    },
+    async fetchEmployees() {
+      const { data, error } = await supabase.from('tbemployee').select('*').is('deletedatetime', null)
+      if (error) console.error('Error fetching employees:', error)
+      else this.employees = data
+    },
+    // Open the employee form for creating or editing
+    openEmployeeForm(employee = null) {
+      if (employee) {
+        // If editing, populate the form with the employee's data
+        this.employeeForm = { ...employee };
+        this.isEditing = true;
+      } else {
+        // If creating, reset the form
+        this.employeeForm = { id: null, employeename: '', age: '', phone: '' };
+        this.isEditing = false;
+      }
+      this.showEmployeeForm = true;
+    },
+    // Close the employee form
+    closeEmployeeForm() {
+      this.showEmployeeForm = false;
+    },
+    // Save or update an employee
+    async saveEmployee() {
+      if (this.isEditing) {
+        // Update existing employee
+        const { error } = await supabase
+          .from('tbemployee')
+          .update(this.employeeForm)
+          .eq('id', this.employeeForm.id);
+        if (error) console.error('Error updating employee:', error);
+      } else {
+        // Create new employee
+        const { error } = await supabase
+          .from('tbemployee')
+          .insert([this.employeeForm]);
+        if (error) console.error('Error creating employee:', error);
+      }
+      await this.fetchEmployees(); // Refresh the employee list
+      this.closeEmployeeForm(); // Close the form
+    },
+    // Edit an employee
+    editEmployee(employee) {
+      this.openEmployeeForm(employee);
+    },
+    async deleteEmployee(id) {
+      await supabase.from('tbemployee').update({ deletedatetime: new Date().toISOString() }).eq('id', id)
+      await this.fetchEmployees()
+    },
+    formatDate(date) {
+      return date ? new Date(date).toLocaleString() : ''
     },
     sort(key) {
       this.sortOrder = this.sortKey === key && this.sortOrder === 'asc' ? 'desc' : 'asc';
@@ -127,11 +239,52 @@ export default {
 </script>
 
 <style scoped>
-th.sortable {
-  cursor: pointer;
+.container-fluid {
+  padding: 20px;
 }
-th.sortable:hover {
-  background-color: #343a40 !important;
-  color: #ffffff !important;
+.card {
+  border-radius: 8px;
+}
+.navbar-brand {
+  font-weight: bold;
+}
+.table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+.btn {
+  text-transform: none;
+  font-weight: 500;
+}
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+.modal-footer {
+  border-top: 1px solid #ddd;
+  padding-top: 10px;
+  margin-top: 10px;
 }
 </style>
