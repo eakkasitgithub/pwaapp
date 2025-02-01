@@ -109,212 +109,51 @@
 </template>
 
 <script>
-import { createClient } from '@supabase/supabase-js'
+methods: {
+  openEmployeeForm() {
+    this.isEditing = false; // Ensure it's in create mode
+    this.employeeForm = { id: null, employeename: '', age: '', phone: '' };
+    this.showEmployeeForm = true;
+  },
+  async saveEmployee() {
+    try {
+      const now = new Date().toISOString();
 
-const supabaseUrl = 'https://yrtaklxwrlbatvigvlnl.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlydGFrbHh3cmxiYXR2aWd2bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc1Mjc5MDIsImV4cCI6MjA1MzEwMzkwMn0.8L1UX5CqFYjkr-yznH_nm57fvTcIKAzLbm1-qPnsTfk'
-const supabase = createClient(supabaseUrl, supabaseKey)
+      if (this.isEditing) {
+        const { data, error } = await supabase
+          .from('tbemployee')
+          .update({
+            employeename: this.employeeForm.employeename,
+            age: this.employeeForm.age,
+            phone: this.employeeForm.phone,
+            updatedatetime: now
+          })
+          .eq('id', this.employeeForm.id);
 
-export default {
-  name: 'App',
-  data() {
-    return {
-      user: null,
-      loginForm: { email: '', password: '' },
-      loginError: null,
-      employees: [],
-      searchQuery: '',
-      sortKey: 'id',
-      sortOrder: 'asc',
-      showEmployeeForm: false, // Controls visibility of the employee form
-      isEditing: false, // Determines if the form is in edit mode
-      employeeForm: { // Stores data for the employee form
-        id: null,
-        employeename: '',
-        age: '',
-        phone: ''
-      }
-    }
-  },
-  async created() {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-      this.user = session.user
-      await this.fetchEmployees()
-    }
-    supabase.auth.onAuthStateChange((event, session) => {
-      this.user = session ? session.user : null
-      if (this.user) this.fetchEmployees()
-      else this.employees = []
-    })
-  },
-  computed: {
-    filteredEmployees() {
-      return this.employees.filter(emp =>
-        Object.values(emp).some(value =>
-          String(value).toLowerCase().includes(this.searchQuery.toLowerCase())
-        )
-      ).sort((a, b) => {
-        let modifier = this.sortOrder === 'asc' ? 1 : -1;
-        return a[this.sortKey] > b[this.sortKey] ? modifier : -modifier;
-      });
-    }
-  },
-  methods: {
-    async handleLogin() {
-      this.loginError = null
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: this.loginForm.email,
-          password: this.loginForm.password
-        })
-        if (error) this.loginError = error.message
-        else this.user = data.user
-      } catch (err) {
-        this.loginError = 'Login failed. Try again.'
-      }
-    },
-    async handleLogout() {
-      await supabase.auth.signOut()
-      this.user = null
-    },
-    async fetchEmployees() {
-      const { data, error } = await supabase.from('tbemployee').select('*').is('deletedatetime', null)
-      if (error) console.error('Error fetching employees:', error)
-      else this.employees = data
-    },
-    openEmployeeForm(employee = null) {
-      if (employee) {
-        // If editing, populate the form with the employee's data
-        this.employeeForm = { ...employee };
-        this.isEditing = true;
+        if (error) throw error;
+        console.log('Employee updated successfully:', data);
       } else {
-        // If creating, reset the form
-        this.employeeForm = { id: null, employeename: '', age: '', phone: '' };
-        this.isEditing = false;
+        this.isEditing = false; // Ensure it's in create mode
+        const { data, error } = await supabase
+          .from('tbemployee')
+          .insert([{
+            employeename: this.employeeForm.employeename,
+            age: this.employeeForm.age,
+            phone: this.employeeForm.phone,
+            createdatetime: now,
+            updatedatetime: now
+          }]);
+
+        if (error) throw error;
+        console.log('Employee created successfully:', data);
       }
-      this.showEmployeeForm = true;
-    },
-    closeEmployeeForm() {
-      this.showEmployeeForm = false;
-    },
-    async saveEmployee() {
-      try {
-        const now = new Date().toISOString(); // Ensure `now` is defined
 
-        if (this.isEditing) {
-          // Update existing employee
-          const { data, error } = await supabase
-            .from('tbemployee')
-            .update({
-              employeename: this.employeeForm.employeename,
-              age: this.employeeForm.age,
-              phone: this.employeeForm.phone,
-              updatedatetime: now // Update timestamp
-            })
-            .eq('id', this.employeeForm.id);
-
-          if (error) throw error;
-          console.log('Employee updated successfully:', data);
-        } else {
-          // Create new employee
-          const { data, error } = await supabase
-            .from('tbemployee')
-            .insert({
-              employeename: this.employeeForm.employeename,
-              age: this.employeeForm.age,
-              phone: this.employeeForm.phone,
-              createdatetime: now // Add timestamp for creation
-            });
-
-          if (error) throw error;
-          console.log('Employee created successfully:', data);
-        }
-
-        await this.fetchEmployees(); // Refresh employee list
-        this.closeEmployeeForm(); // Close the form modal
-      } catch (error) {
-        console.error('Error saving employee:', error);
-        alert('Failed to save employee. Check the console for details.');
-      }
-    },
-    editEmployee(employee) {
-      this.openEmployeeForm(employee);
-    },
-    async deleteEmployee(id) {
-      if (confirm('Are you sure you want to delete this employee?')) {
-        try {
-          const { error } = await supabase
-            .from('tbemployee')
-            .update({ deletedatetime: new Date().toISOString() })
-            .eq('id', id);
-
-          if (error) throw error;
-          await this.fetchEmployees(); // Refresh the employee list
-        } catch (error) {
-          console.error('Error deleting employee:', error);
-          alert('Failed to delete employee. Check the console for details.');
-        }
-      }
-    },
-    formatDate(date) {
-      return date ? new Date(date).toLocaleString() : ''
-    },
-    sort(key) {
-      this.sortOrder = this.sortKey === key && this.sortOrder === 'asc' ? 'desc' : 'asc';
-      this.sortKey = key;
+      await this.fetchEmployees();
+      this.closeEmployeeForm();
+    } catch (error) {
+      console.error('Error saving employee:', error);
+      alert('Failed to save employee. Check the console for details.');
     }
   }
 }
 </script>
-
-<style scoped>
-.container-fluid {
-  padding: 20px;
-}
-.card {
-  border-radius: 8px;
-}
-.navbar-brand {
-  font-weight: bold;
-}
-.table {
-  border-radius: 8px;
-  overflow: hidden;
-}
-.btn {
-  text-transform: none;
-  font-weight: 500;
-}
-/* Modal styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  width: 400px;
-}
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 10px;
-  margin-bottom: 10px;
-}
-.modal-footer {
-  border-top: 1px solid #ddd;
-  padding-top: 10px;
-  margin-top: 10px;
-}
-</style>
