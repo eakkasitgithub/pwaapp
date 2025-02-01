@@ -210,10 +210,14 @@ export default {
           if (error) throw error;
           console.log('Employee updated successfully:', data);
         } else {
-          // Create new employee
+          // Create new employee (exclude `id` since it's auto-incrementing)
           const { data, error } = await supabase
             .from('tbemployee')
-            .insert([this.employeeForm]);
+            .insert([{
+              employeename: this.employeeForm.employeename,
+              age: this.employeeForm.age,
+              phone: this.employeeForm.phone
+            }]);
 
           if (error) throw error;
           console.log('Employee created successfully:', data);
