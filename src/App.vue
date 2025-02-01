@@ -224,8 +224,7 @@ export default {
               employeename: this.employeeForm.employeename,
               age: this.employeeForm.age,
               phone: this.employeeForm.phone,
-              createdatetime: now, // Add timestamp for creation
-              updatedatetime: now
+              createdatetime: now // Add timestamp for creation
             });
 
           if (error) throw error;
