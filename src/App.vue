@@ -111,7 +111,7 @@ import { createClient } from '@supabase/supabase-js'
 
 // 🔹 Supabase Configuration
 const supabaseUrl = 'https://yrtaklxwrlbatvigvlnl.supabase.co'
-const supabaseKey = 'your-supabase-key' // Replace with your actual Supabase Key
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlydGFrbHh3cmxiYXR2aWd2bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc1Mjc5MDIsImV4cCI6MjA1MzEwMzkwMn0.8L1UX5CqFYjkr-yznH_nm57fvTcIKAzLbm1-qPnsTfk' // Replace with your actual Supabase Key
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 export default {
