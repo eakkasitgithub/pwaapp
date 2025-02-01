@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <h1>Hello World</h1>
+    <h1>Hello World HELLO</h1>
     <p>Last saved at: {{ lastSaved }}</p>
   </div>
 </template>
