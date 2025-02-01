@@ -110,9 +110,19 @@
 
           <v-card class="pa-4 sleek-card" elevation="4">
             <v-card-title class="headline">Employee List</v-card-title>
+            <!-- Search Box -->
+            <v-text-field
+              v-model="searchQuery"
+              label="Search"
+              append-inner-icon="mdi-magnify"
+              outlined
+              dense
+              class="mb-4"
+            />
             <v-data-table
               :headers="tableHeaders"
               :items="employees"
+              :search="searchQuery"
               :items-per-page="5"
               class="elevation-1"
             >
@@ -167,12 +177,15 @@ export default {
         phone: ''
       },
       editing: false,
+      // Search query for filtering table data
+      searchQuery: '',
+      // Table headers for the data table with sorting enabled
       tableHeaders: [
-        { text: 'Employee Name', value: 'employeename' },
-        { text: 'Age', value: 'age' },
-        { text: 'Phone', value: 'phone' },
-        { text: 'Created', value: 'createdatetime' },
-        { text: 'Updated', value: 'updatedatetime' },
+        { text: 'Employee Name', value: 'employeename', sortable: true },
+        { text: 'Age', value: 'age', sortable: true },
+        { text: 'Phone', value: 'phone', sortable: true },
+        { text: 'Created', value: 'createdatetime', sortable: true },
+        { text: 'Updated', value: 'updatedatetime', sortable: true },
         { text: 'Actions', value: 'actions', sortable: false }
       ]
     }
@@ -336,30 +349,28 @@ export default {
 </script>
 
 <style scoped>
-/* Custom styling for a sleeker look */
 .my-container {
   max-width: 1200px;
   margin: 0 auto;
+  padding-bottom: 40px;
 }
 
-/* Increase spacing between cards */
 .sleek-card {
   margin-bottom: 24px;
   border-radius: 8px;
 }
 
-/* Adjust typography */
 .headline {
   font-weight: bold;
   font-size: 1.5rem;
 }
 
-/* Responsive font sizes for data table */
+/* Adjust data table font size for better readability */
 .v-data-table {
   font-size: 0.9rem;
 }
 
-/* Add additional spacing and style for buttons if needed */
+/* Override default Vuetify button text-transform */
 .v-btn {
   text-transform: none;
 }
