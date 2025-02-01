@@ -35,18 +35,18 @@
           <div class="card shadow mb-4">
             <div class="card-header bg-primary text-white">Manage Employees</div>
             <div class="card-body">
-              <button class="btn btn-success mb-3" @click="createEmployee">+ Create New Employee</button>
+              <button class="btn btn-success mb-3" @click="showCreateModal = true">+ Create New Employee</button>
               <input v-model="searchQuery" class="form-control mb-3" placeholder="Search Employees">
 
               <table class="table table-striped table-hover">
                 <thead class="table-dark">
                   <tr>
-                    <th @click="sort('id')">ID</th>
-                    <th @click="sort('employeename')">Employee Name</th>
-                    <th @click="sort('age')">Age</th>
-                    <th @click="sort('phone')">Phone</th>
-                    <th @click="sort('createdatetime')">Created</th>
-                    <th @click="sort('updatedatetime')">Updated</th>
+                    <th class="sortable" @click="sort('id')">ID <span v-if="sortKey === 'id'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
+                    <th class="sortable" @click="sort('employeename')">Employee Name <span v-if="sortKey === 'employeename'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
+                    <th class="sortable" @click="sort('age')">Age <span v-if="sortKey === 'age'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
+                    <th class="sortable" @click="sort('phone')">Phone <span v-if="sortKey === 'phone'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
+                    <th class="sortable" @click="sort('createdatetime')">Created <span v-if="sortKey === 'createdatetime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
+                    <th class="sortable" @click="sort('updatedatetime')">Updated <span v-if="sortKey === 'updatedatetime'">{{ sortOrder === 'asc' ? '▲' : '▼' }}</span></th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -69,6 +69,22 @@
           </div>
         </div>
       </v-container>
+
+      <!-- Create Employee Modal -->
+      <v-dialog v-model="showCreateModal" persistent max-width="400px">
+        <v-card>
+          <v-card-title class="bg-primary text-white">Create New Employee</v-card-title>
+          <v-card-text>
+            <v-form @submit.prevent="createEmployee">
+              <v-text-field v-model="newEmployee.employeename" label="Employee Name" required></v-text-field>
+              <v-text-field v-model="newEmployee.age" label="Age" type="number" required></v-text-field>
+              <v-text-field v-model="newEmployee.phone" label="Phone" required></v-text-field>
+              <v-btn color="primary" type="submit">Create</v-btn>
+              <v-btn @click="showCreateModal = false" class="ml-2">Cancel</v-btn>
+            </v-form>
+          </v-card-text>
+        </v-card>
+      </v-dialog>
     </v-main>
   </v-app>
 </template>
@@ -81,77 +97,29 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 export default {
-  name: 'App',
   data() {
     return {
       user: null,
-      loginForm: { email: '', password: '' },
-      loginError: null,
-      employees: [],
-      searchQuery: '',
       sortKey: 'id',
-      sortOrder: 'asc'
-    }
-  },
-  async created() {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-      this.user = session.user
-      await this.fetchEmployees()
-    }
-    supabase.auth.onAuthStateChange((event, session) => {
-      this.user = session ? session.user : null
-      if (this.user) this.fetchEmployees()
-      else this.employees = []
-    })
-  },
-  computed: {
-    filteredEmployees() {
-      return this.employees.filter(emp =>
-        Object.values(emp).some(value =>
-          String(value).toLowerCase().includes(this.searchQuery.toLowerCase())
-        )
-      ).sort((a, b) => {
-        let modifier = this.sortOrder === 'asc' ? 1 : -1;
-        return a[this.sortKey] > b[this.sortKey] ? modifier : -modifier;
-      });
+      sortOrder: 'asc',
+      showCreateModal: false,
+      newEmployee: { employeename: '', age: '', phone: '' }
     }
   },
   methods: {
-    async handleLogin() {
-      this.loginError = null
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: this.loginForm.email,
-          password: this.loginForm.password
-        })
-        if (error) this.loginError = error.message
-        else this.user = data.user
-      } catch (err) {
-        this.loginError = 'Login failed. Try again.'
-      }
-    },
-    async handleLogout() {
-      await supabase.auth.signOut()
-      this.user = null
-    },
-    async fetchEmployees() {
-      const { data, error } = await supabase.from('tbemployee').select('*').is('deletedatetime', null)
-      if (error) console.error('Error fetching employees:', error)
-      else this.employees = data
-    },
-    createEmployee() {
-      console.log('Create Employee Clicked')
-    },
-    editEmployee(employee) {
-      console.log('Edit Employee:', employee)
-    },
-    async deleteEmployee(id) {
-      await supabase.from('tbemployee').update({ deletedatetime: new Date().toISOString() }).eq('id', id)
-      await this.fetchEmployees()
-    },
-    formatDate(date) {
-      return date ? new Date(date).toLocaleString() : ''
+    async createEmployee() {
+      if (!this.newEmployee.employeename || !this.newEmployee.age || !this.newEmployee.phone) return;
+      const now = new Date().toISOString();
+      await supabase.from('tbemployee').insert({
+        employeename: this.newEmployee.employeename,
+        age: this.newEmployee.age,
+        phone: this.newEmployee.phone,
+        createdatetime: now,
+        updatedatetime: now
+      });
+      this.showCreateModal = false;
+      this.newEmployee = { employeename: '', age: '', phone: '' };
+      this.fetchEmployees();
     },
     sort(key) {
       this.sortOrder = this.sortKey === key && this.sortOrder === 'asc' ? 'desc' : 'asc';
@@ -162,21 +130,11 @@ export default {
 </script>
 
 <style scoped>
-.container-fluid {
-  padding: 20px;
+th.sortable {
+  cursor: pointer;
 }
-.card {
-  border-radius: 8px;
-}
-.navbar-brand {
-  font-weight: bold;
-}
-.table {
-  border-radius: 8px;
-  overflow: hidden;
-}
-.btn {
-  text-transform: none;
-  font-weight: 500;
+th.sortable:hover {
+  background-color: #343a40 !important;
+  color: #ffffff !important;
 }
 </style>
