@@ -73,7 +73,7 @@
 <script>
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase initialization code using your provided credentials
+// Supabase initialization using your provided credentials
 const supabaseUrl = 'https://yrtaklxwrlbatvigvlnl.supabase.co'
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlydGFrbHh3cmxiYXR2aWd2bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc1Mjc5MDIsImV4cCI6MjA1MzEwMzkwMn0.8L1UX5CqFYjkr-yznH_nm57fvTcIKAzLbm1-qPnsTfk'
 const supabase = createClient(supabaseUrl, supabaseKey)
@@ -82,7 +82,7 @@ export default {
   name: 'App',
   data() {
     return {
-      // Auth-related data
+      // Authentication-related data
       user: null,
       loginForm: {
         email: '',
@@ -107,12 +107,15 @@ export default {
       this.user = session.user
       this.fetchEmployees()
     }
-
+    
     // Listen for auth state changes
     supabase.auth.onAuthStateChange((event, session) => {
       this.user = session ? session.user : null
       if (this.user) {
         this.fetchEmployees()
+      } else {
+        // Clear employees list when signed out
+        this.employees = []
       }
     })
   },
@@ -120,35 +123,48 @@ export default {
     // Login using Supabase Auth
     async handleLogin() {
       this.loginError = null
-      const { user, error } = await supabase.auth.signIn({
-        email: this.loginForm.email,
-        password: this.loginForm.password
-      })
-      if (error) {
-        this.loginError = error.message
-      } else {
-        this.user = user
-        this.fetchEmployees()
+      try {
+        const { user, error } = await supabase.auth.signIn({
+          email: this.loginForm.email,
+          password: this.loginForm.password
+        })
+        if (error) {
+          this.loginError = error.message
+        } else {
+          this.user = user
+          this.fetchEmployees()
+        }
+      } catch (err) {
+        console.error('Login error:', err)
+        this.loginError = 'Login failed. Please try again.'
       }
     },
     // Logout
     async handleLogout() {
-      const { error } = await supabase.auth.signOut()
-      if (error) {
-        console.error("Error logging out:", error)
+      try {
+        const { error } = await supabase.auth.signOut()
+        if (error) {
+          console.error("Error logging out:", error)
+        }
+        this.user = null
+      } catch (err) {
+        console.error('Logout error:', err)
       }
-      this.user = null
     },
     // Fetch employee records where DeleteDateTime is null
     async fetchEmployees() {
-      const { data, error } = await supabase
-        .from('tbEmployee')
-        .select('*')
-        .is('DeleteDateTime', null)
-      if (error) {
-        console.error('Error fetching employees:', error)
-      } else {
-        this.employees = data
+      try {
+        const { data, error } = await supabase
+          .from('tbEmployee')
+          .select('*')
+          .is('DeleteDateTime', null)
+        if (error) {
+          console.error('Error fetching employees:', error)
+        } else {
+          this.employees = data
+        }
+      } catch (err) {
+        console.error('Fetch employees error:', err)
       }
     },
     // Handle form submission for create/update
@@ -164,18 +180,22 @@ export default {
     // Create a new employee record
     async createEmployee() {
       const now = new Date().toISOString()
-      const { error } = await supabase
-        .from('tbEmployee')
-        .insert([{
-          EmployeeName: this.employeeForm.EmployeeName,
-          Age: this.employeeForm.Age,
-          Phone: this.employeeForm.Phone,
-          CreateDateTime: now,
-          UpdateDateTime: now,
-          DeleteDateTime: null
-        }])
-      if (error) {
-        console.error('Error creating employee:', error)
+      try {
+        const { error } = await supabase
+          .from('tbEmployee')
+          .insert([{
+            EmployeeName: this.employeeForm.EmployeeName,
+            Age: this.employeeForm.Age,
+            Phone: this.employeeForm.Phone,
+            CreateDateTime: now,
+            UpdateDateTime: now,
+            DeleteDateTime: null
+          }])
+        if (error) {
+          console.error('Error creating employee:', error)
+        }
+      } catch (err) {
+        console.error('Create employee error:', err)
       }
     },
     // Prepare the form for editing an existing employee
@@ -200,30 +220,38 @@ export default {
     // Update an existing employee record
     async updateEmployee() {
       const now = new Date().toISOString()
-      const { error } = await supabase
-        .from('tbEmployee')
-        .update({
-          EmployeeName: this.employeeForm.EmployeeName,
-          Age: this.employeeForm.Age,
-          Phone: this.employeeForm.Phone,
-          UpdateDateTime: now
-        })
-        .eq('id', this.employeeForm.id)
-      if (error) {
-        console.error('Error updating employee:', error)
+      try {
+        const { error } = await supabase
+          .from('tbEmployee')
+          .update({
+            EmployeeName: this.employeeForm.EmployeeName,
+            Age: this.employeeForm.Age,
+            Phone: this.employeeForm.Phone,
+            UpdateDateTime: now
+          })
+          .eq('id', this.employeeForm.id)
+        if (error) {
+          console.error('Error updating employee:', error)
+        }
+      } catch (err) {
+        console.error('Update employee error:', err)
       }
     },
     // Soft-delete an employee record by setting DeleteDateTime
     async deleteEmployee(id) {
       const now = new Date().toISOString()
-      const { error } = await supabase
-        .from('tbEmployee')
-        .update({ DeleteDateTime: now })
-        .eq('id', id)
-      if (error) {
-        console.error('Error deleting employee:', error)
+      try {
+        const { error } = await supabase
+          .from('tbEmployee')
+          .update({ DeleteDateTime: now })
+          .eq('id', id)
+        if (error) {
+          console.error('Error deleting employee:', error)
+        }
+        await this.fetchEmployees()
+      } catch (err) {
+        console.error('Delete employee error:', err)
       }
-      await this.fetchEmployees()
     },
     // Utility to format timestamps
     formatDate(dateString) {
