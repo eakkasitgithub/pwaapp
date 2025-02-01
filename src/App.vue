@@ -21,25 +21,25 @@
     <div v-else>
       <button @click="handleLogout">Logout</button>
       <h1>Employee Management</h1>
-      
+
       <!-- Employee Form -->
       <form @submit.prevent="handleSubmit">
         <div>
-          <label for="name">Employee Name:</label>
-          <input id="name" type="text" v-model="employeeForm.EmployeeName" required />
+          <label for="employeename">Employee Name:</label>
+          <input id="employeename" type="text" v-model="employeeForm.employeename" required />
         </div>
         <div>
           <label for="age">Age:</label>
-          <input id="age" type="number" v-model.number="employeeForm.Age" required />
+          <input id="age" type="number" v-model.number="employeeForm.age" required />
         </div>
         <div>
           <label for="phone">Phone:</label>
-          <input id="phone" type="text" v-model="employeeForm.Phone" required />
+          <input id="phone" type="text" v-model="employeeForm.phone" required />
         </div>
         <button type="submit">{{ editing ? 'Update' : 'Create' }}</button>
         <button type="button" v-if="editing" @click="cancelEdit">Cancel</button>
       </form>
-      
+
       <!-- Employee Table -->
       <table>
         <thead>
@@ -54,11 +54,11 @@
         </thead>
         <tbody>
           <tr v-for="employee in employees" :key="employee.id">
-            <td>{{ employee.EmployeeName }}</td>
-            <td>{{ employee.Age }}</td>
-            <td>{{ employee.Phone }}</td>
-            <td>{{ formatDate(employee.CreateDateTime) }}</td>
-            <td>{{ formatDate(employee.UpdateDateTime) }}</td>
+            <td>{{ employee.employeename }}</td>
+            <td>{{ employee.age }}</td>
+            <td>{{ employee.phone }}</td>
+            <td>{{ formatDate(employee.createdatetime) }}</td>
+            <td>{{ formatDate(employee.updatedatetime) }}</td>
             <td>
               <button @click="editEmployee(employee)">Edit</button>
               <button @click="deleteEmployee(employee.id)">Delete</button>
@@ -75,7 +75,8 @@ import { createClient } from '@supabase/supabase-js'
 
 // Supabase initialization using your provided credentials
 const supabaseUrl = 'https://yrtaklxwrlbatvigvlnl.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlydGFrbHh3cmxiYXR2aWd2bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc1Mjc5MDIsImV4cCI6MjA1MzEwMzkwMn0.8L1UX5CqFYjkr-yznH_nm57fvTcIKAzLbm1-qPnsTfk'
+const supabaseKey =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlydGFrbHh3cmxiYXR2aWd2bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc1Mjc5MDIsImV4cCI6MjA1MzEwMzkwMn0.8L1UX5CqFYjkr-yznH_nm57fvTcIKAzLbm1-qPnsTfk'
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 export default {
@@ -93,9 +94,9 @@ export default {
       employees: [],
       employeeForm: {
         id: null,
-        EmployeeName: '',
-        Age: null,
-        Phone: ''
+        employeename: '',
+        age: null,
+        phone: ''
       },
       editing: false
     }
@@ -107,7 +108,7 @@ export default {
       this.user = session.user
       this.fetchEmployees()
     }
-    
+
     // Listen for auth state changes
     supabase.auth.onAuthStateChange((event, session) => {
       this.user = session ? session.user : null
@@ -143,23 +144,24 @@ export default {
       try {
         const { error } = await supabase.auth.signOut()
         if (error) {
-          console.error("Error logging out:", error)
+          console.error('Error logging out:', error)
         }
         this.user = null
       } catch (err) {
         console.error('Logout error:', err)
       }
     },
-    // Fetch employee records where DeleteDateTime is null
+    // Fetch employee records where deletedatetime is null
     async fetchEmployees() {
       try {
         const { data, error } = await supabase
           .from('tbemployee')
           .select('*')
-          .is('DeleteDateTime', null)
+          .is('deletedatetime', null)
         if (error) {
           console.error('Error fetching employees:', error)
         } else {
+          console.log('Fetched employees:', data)
           this.employees = data
         }
       } catch (err) {
@@ -180,18 +182,28 @@ export default {
     async createEmployee() {
       const now = new Date().toISOString()
       try {
-        const { error } = await supabase
+        console.log('Inserting employee:', {
+          employeename: this.employeeForm.employeename,
+          age: this.employeeForm.age,
+          phone: this.employeeForm.phone,
+          createdatetime: now,
+          updatedatetime: now,
+          deletedatetime: null
+        })
+        const { data, error } = await supabase
           .from('tbemployee')
           .insert([{
-            EmployeeName: this.employeeForm.EmployeeName,
-            Age: this.employeeForm.Age,
-            Phone: this.employeeForm.Phone,
-            CreateDateTime: now,
-            UpdateDateTime: now,
-            DeleteDateTime: null
+            employeename: this.employeeForm.employeename,
+            age: this.employeeForm.age,
+            phone: this.employeeForm.phone,
+            createdatetime: now,
+            updatedatetime: now,
+            deletedatetime: null
           }])
         if (error) {
           console.error('Error creating employee:', error)
+        } else {
+          console.log('Employee created:', data)
         }
       } catch (err) {
         console.error('Create employee error:', err)
@@ -199,6 +211,7 @@ export default {
     },
     // Prepare the form for editing an existing employee
     editEmployee(employee) {
+      // Copy the values from the employee record into the form
       this.employeeForm = { ...employee }
       this.editing = true
     },
@@ -210,9 +223,9 @@ export default {
     resetForm() {
       this.employeeForm = {
         id: null,
-        EmployeeName: '',
-        Age: null,
-        Phone: ''
+        employeename: '',
+        age: null,
+        phone: ''
       }
       this.editing = false
     },
@@ -223,10 +236,10 @@ export default {
         const { error } = await supabase
           .from('tbemployee')
           .update({
-            EmployeeName: this.employeeForm.EmployeeName,
-            Age: this.employeeForm.Age,
-            Phone: this.employeeForm.Phone,
-            UpdateDateTime: now
+            employeename: this.employeeForm.employeename,
+            age: this.employeeForm.age,
+            phone: this.employeeForm.phone,
+            updatedatetime: now
           })
           .eq('id', this.employeeForm.id)
         if (error) {
@@ -236,13 +249,13 @@ export default {
         console.error('Update employee error:', err)
       }
     },
-    // Soft-delete an employee record by setting DeleteDateTime
+    // Soft-delete an employee record by setting deletedatetime
     async deleteEmployee(id) {
       const now = new Date().toISOString()
       try {
         const { error } = await supabase
           .from('tbemployee')
-          .update({ DeleteDateTime: now })
+          .update({ deletedatetime: now })
           .eq('id', id)
         if (error) {
           console.error('Error deleting employee:', error)
