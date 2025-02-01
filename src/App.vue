@@ -51,7 +51,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="employee in filteredEmployees" :key="employee.id">
+                  <tr v-for="employee in employees" :key="employee.id">
                     <td>{{ employee.id }}</td>
                     <td>{{ employee.employeename }}</td>
                     <td>{{ employee.age }}</td>
@@ -69,22 +69,6 @@
           </div>
         </div>
       </v-container>
-
-      <!-- Create Employee Modal -->
-      <v-dialog v-model="showCreateModal" persistent max-width="400px">
-        <v-card>
-          <v-card-title class="bg-primary text-white">Create New Employee</v-card-title>
-          <v-card-text>
-            <v-form @submit.prevent="createEmployee">
-              <v-text-field v-model="newEmployee.employeename" label="Employee Name" required></v-text-field>
-              <v-text-field v-model="newEmployee.age" label="Age" type="number" required></v-text-field>
-              <v-text-field v-model="newEmployee.phone" label="Phone" required></v-text-field>
-              <v-btn color="primary" type="submit">Create</v-btn>
-              <v-btn @click="showCreateModal = false" class="ml-2">Cancel</v-btn>
-            </v-form>
-          </v-card-text>
-        </v-card>
-      </v-dialog>
     </v-main>
   </v-app>
 </template>
@@ -100,13 +84,26 @@ export default {
   data() {
     return {
       user: null,
+      employees: [],
       sortKey: 'id',
       sortOrder: 'asc',
       showCreateModal: false,
       newEmployee: { employeename: '', age: '', phone: '' }
     }
   },
+  async created() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      this.user = session.user;
+      await this.fetchEmployees();
+    }
+  },
   methods: {
+    async fetchEmployees() {
+      const { data, error } = await supabase.from('tbemployee').select('*').is('deletedatetime', null);
+      if (error) console.error('Error fetching employees:', error);
+      else this.employees = data;
+    },
     async createEmployee() {
       if (!this.newEmployee.employeename || !this.newEmployee.age || !this.newEmployee.phone) return;
       const now = new Date().toISOString();
