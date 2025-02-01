@@ -1,79 +1,123 @@
 <template>
-  <div id="app">
-    <!-- If user is not logged in, show the login form -->
-    <div v-if="!user">
-      <h2>Login</h2>
-      <form @submit.prevent="handleLogin">
-        <div>
-          <label for="email">Email:</label>
-          <input id="email" type="email" v-model="loginForm.email" required />
-        </div>
-        <div>
-          <label for="password">Password:</label>
-          <input id="password" type="password" v-model="loginForm.password" required />
-        </div>
-        <button type="submit">Login</button>
-      </form>
-      <p v-if="loginError" style="color: red;">{{ loginError }}</p>
-    </div>
+  <v-app>
+    <v-container class="mt-8">
+      <!-- If user is not logged in, show the login form -->
+      <div v-if="!user">
+        <v-card max-width="500" class="mx-auto pa-4" elevation="2">
+          <v-card-title class="justify-center">Login</v-card-title>
+          <v-card-text>
+            <v-form @submit.prevent="handleLogin">
+              <v-text-field
+                v-model="loginForm.email"
+                label="Email"
+                type="email"
+                required
+              ></v-text-field>
+              <v-text-field
+                v-model="loginForm.password"
+                label="Password"
+                type="password"
+                required
+              ></v-text-field>
+              <v-btn color="primary" type="submit" class="mt-2" block>
+                Login
+              </v-btn>
+            </v-form>
+            <v-alert v-if="loginError" type="error" class="mt-2">
+              {{ loginError }}
+            </v-alert>
+          </v-card-text>
+        </v-card>
+      </div>
 
-    <!-- Once logged in, show Employee Management UI -->
-    <div v-else>
-      <button @click="handleLogout">Logout</button>
-      <h1>Employee Management</h1>
+      <!-- Once logged in, show Employee Management UI -->
+      <div v-else>
+        <v-row>
+          <v-col cols="12" class="text-right">
+            <v-btn color="primary" @click="handleLogout">Logout</v-btn>
+          </v-col>
+        </v-row>
 
-      <!-- Employee Form -->
-      <form @submit.prevent="handleSubmit">
-        <div>
-          <label for="employeename">Employee Name:</label>
-          <input id="employeename" type="text" v-model="employeeForm.employeename" required />
-        </div>
-        <div>
-          <label for="age">Age:</label>
-          <input id="age" type="number" v-model.number="employeeForm.age" required />
-        </div>
-        <div>
-          <label for="phone">Phone:</label>
-          <input id="phone" type="text" v-model="employeeForm.phone" required />
-        </div>
-        <button type="submit">{{ editing ? 'Update' : 'Create' }}</button>
-        <button type="button" v-if="editing" @click="cancelEdit">Cancel</button>
-      </form>
+        <v-card class="pa-4" elevation="2">
+          <v-card-title>Employee Management</v-card-title>
+          <v-card-text>
+            <v-form @submit.prevent="handleSubmit">
+              <v-row>
+                <v-col cols="12" sm="4">
+                  <v-text-field
+                    v-model="employeeForm.employeename"
+                    label="Employee Name"
+                    required
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12" sm="4">
+                  <v-text-field
+                    v-model.number="employeeForm.age"
+                    label="Age"
+                    type="number"
+                    required
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12" sm="4">
+                  <v-text-field
+                    v-model="employeeForm.phone"
+                    label="Phone"
+                    required
+                  ></v-text-field>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col cols="12" class="text-right">
+                  <v-btn color="success" type="submit">
+                    {{ editing ? 'Update' : 'Create' }}
+                  </v-btn>
+                  <v-btn
+                    color="grey"
+                    type="button"
+                    v-if="editing"
+                    @click="cancelEdit"
+                    class="ml-2"
+                  >
+                    Cancel
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </v-form>
+          </v-card-text>
+        </v-card>
 
-      <!-- Employee Table -->
-      <table>
-        <thead>
-          <tr>
-            <th>Employee Name</th>
-            <th>Age</th>
-            <th>Phone</th>
-            <th>Create Date</th>
-            <th>Update Date</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="employee in employees" :key="employee.id">
-            <td>{{ employee.employeename }}</td>
-            <td>{{ employee.age }}</td>
-            <td>{{ employee.phone }}</td>
-            <td>{{ formatDate(employee.createdatetime) }}</td>
-            <td>{{ formatDate(employee.updatedatetime) }}</td>
-            <td>
-              <button @click="editEmployee(employee)">Edit</button>
-              <button @click="deleteEmployee(employee.id)">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+        <v-card class="pa-4 mt-4" elevation="2">
+          <v-card-title>Employee List</v-card-title>
+          <v-data-table
+            :headers="tableHeaders"
+            :items="employees"
+            :items-per-page="5"
+            class="elevation-1"
+          >
+            <template v-slot:item.createdatetime="{ item }">
+              {{ formatDate(item.createdatetime) }}
+            </template>
+            <template v-slot:item.updatedatetime="{ item }">
+              {{ formatDate(item.updatedatetime) }}
+            </template>
+            <template v-slot:item.actions="{ item }">
+              <v-btn icon @click="editEmployee(item)">
+                <v-icon>mdi-pencil</v-icon>
+              </v-btn>
+              <v-btn icon @click="deleteEmployee(item.id)">
+                <v-icon>mdi-delete</v-icon>
+              </v-btn>
+            </template>
+          </v-data-table>
+        </v-card>
+      </div>
+    </v-container>
+  </v-app>
 </template>
 
 <script>
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase initialization using your provided credentials
 const supabaseUrl = 'https://yrtaklxwrlbatvigvlnl.supabase.co'
 const supabaseKey =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlydGFrbHh3cmxiYXR2aWd2bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc1Mjc5MDIsImV4cCI6MjA1MzEwMzkwMn0.8L1UX5CqFYjkr-yznH_nm57fvTcIKAzLbm1-qPnsTfk'
@@ -83,14 +127,12 @@ export default {
   name: 'App',
   data() {
     return {
-      // Authentication-related data
       user: null,
       loginForm: {
         email: '',
         password: ''
       },
       loginError: null,
-      // Employee management data
       employees: [],
       employeeForm: {
         id: null,
@@ -98,18 +140,23 @@ export default {
         age: null,
         phone: ''
       },
-      editing: false
+      editing: false,
+      tableHeaders: [
+        { text: 'Employee Name', value: 'employeename' },
+        { text: 'Age', value: 'age' },
+        { text: 'Phone', value: 'phone' },
+        { text: 'Created', value: 'createdatetime' },
+        { text: 'Updated', value: 'updatedatetime' },
+        { text: 'Actions', value: 'actions', sortable: false }
+      ]
     }
   },
   async created() {
-    // Get the current session using Supabase v2 API
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
       this.user = session.user
       this.fetchEmployees()
     }
-
-    // Listen for auth state changes
     supabase.auth.onAuthStateChange((event, session) => {
       this.user = session ? session.user : null
       if (this.user) {
@@ -120,7 +167,6 @@ export default {
     })
   },
   methods: {
-    // Login using Supabase Auth
     async handleLogin() {
       this.loginError = null
       try {
@@ -139,7 +185,6 @@ export default {
         this.loginError = 'Login failed. Please try again.'
       }
     },
-    // Logout
     async handleLogout() {
       try {
         const { error } = await supabase.auth.signOut()
@@ -151,7 +196,6 @@ export default {
         console.error('Logout error:', err)
       }
     },
-    // Fetch employee records where deletedatetime is null
     async fetchEmployees() {
       try {
         const { data, error } = await supabase
@@ -168,7 +212,6 @@ export default {
         console.error('Fetch employees error:', err)
       }
     },
-    // Handle form submission for create/update
     async handleSubmit() {
       if (this.editing) {
         await this.updateEmployee()
@@ -178,7 +221,6 @@ export default {
       this.resetForm()
       await this.fetchEmployees()
     },
-    // Create a new employee record
     async createEmployee() {
       const now = new Date().toISOString()
       try {
@@ -209,17 +251,13 @@ export default {
         console.error('Create employee error:', err)
       }
     },
-    // Prepare the form for editing an existing employee
     editEmployee(employee) {
-      // Copy the values from the employee record into the form
       this.employeeForm = { ...employee }
       this.editing = true
     },
-    // Cancel editing and reset the form
     cancelEdit() {
       this.resetForm()
     },
-    // Reset form values and editing state
     resetForm() {
       this.employeeForm = {
         id: null,
@@ -229,7 +267,6 @@ export default {
       }
       this.editing = false
     },
-    // Update an existing employee record
     async updateEmployee() {
       const now = new Date().toISOString()
       try {
@@ -249,7 +286,6 @@ export default {
         console.error('Update employee error:', err)
       }
     },
-    // Soft-delete an employee record by setting deletedatetime
     async deleteEmployee(id) {
       const now = new Date().toISOString()
       try {
@@ -265,7 +301,6 @@ export default {
         console.error('Delete employee error:', err)
       }
     },
-    // Utility to format timestamps
     formatDate(dateString) {
       if (!dateString) return ''
       return new Date(dateString).toLocaleString()
@@ -275,17 +310,5 @@ export default {
 </script>
 
 <style scoped>
-/* Basic styling for the form and table */
-table {
-  border-collapse: collapse;
-  width: 100%;
-  margin-top: 20px;
-}
-th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
-}
-form > div {
-  margin-bottom: 10px;
-}
+/* You can add additional custom styling here if needed */
 </style>
