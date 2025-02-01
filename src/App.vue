@@ -1,46 +1,62 @@
 <template>
   <v-app>
     <v-main>
-      <v-container class="mt-8">
+      <v-container class="my-container">
         <!-- If user is not logged in, show the login form -->
         <div v-if="!user">
-          <v-card max-width="500" class="mx-auto pa-4" elevation="2">
-            <v-card-title class="justify-center">Login</v-card-title>
-            <v-card-text>
-              <v-form @submit.prevent="handleLogin">
-                <v-text-field
-                  v-model="loginForm.email"
-                  label="Email"
-                  type="email"
-                  required
-                />
-                <v-text-field
-                  v-model="loginForm.password"
-                  label="Password"
-                  type="password"
-                  required
-                />
-                <v-btn color="primary" type="submit" class="mt-2" block>
-                  Login
-                </v-btn>
-              </v-form>
-              <v-alert v-if="loginError" type="error" class="mt-2">
-                {{ loginError }}
-              </v-alert>
-            </v-card-text>
-          </v-card>
+          <v-row class="fill-height" align="center" justify="center">
+            <v-col cols="12" sm="8" md="6" lg="4">
+              <v-card class="pa-4 sleek-card" elevation="4">
+                <v-card-title class="justify-center headline">Login</v-card-title>
+                <v-card-text>
+                  <v-form @submit.prevent="handleLogin">
+                    <v-text-field
+                      v-model="loginForm.email"
+                      label="Email"
+                      type="email"
+                      required
+                      outlined
+                      dense
+                    />
+                    <v-text-field
+                      v-model="loginForm.password"
+                      label="Password"
+                      type="password"
+                      required
+                      outlined
+                      dense
+                    />
+                    <v-btn color="primary" type="submit" class="mt-4" block>
+                      Login
+                    </v-btn>
+                  </v-form>
+                  <v-alert
+                    v-if="loginError"
+                    type="error"
+                    class="mt-4"
+                    border="start"
+                    colored-border
+                  >
+                    {{ loginError }}
+                  </v-alert>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
         </div>
 
         <!-- Once logged in, show Employee Management UI -->
         <div v-else>
-          <v-row>
+          <v-row class="mb-4">
             <v-col cols="12" class="text-end">
-              <v-btn color="primary" @click="handleLogout">Logout</v-btn>
+              <v-btn color="primary" @click="handleLogout" outlined>
+                Logout
+              </v-btn>
             </v-col>
           </v-row>
 
-          <v-card class="pa-4" elevation="2">
-            <v-card-title>Employee Management</v-card-title>
+          <v-card class="pa-4 sleek-card mb-4" elevation="4">
+            <v-card-title class="headline">Employee Management</v-card-title>
             <v-card-text>
               <v-form @submit.prevent="handleSubmit">
                 <v-row>
@@ -49,6 +65,8 @@
                       v-model="employeeForm.employeename"
                       label="Employee Name"
                       required
+                      outlined
+                      dense
                     />
                   </v-col>
                   <v-col cols="12" sm="4">
@@ -57,6 +75,8 @@
                       label="Age"
                       type="number"
                       required
+                      outlined
+                      dense
                     />
                   </v-col>
                   <v-col cols="12" sm="4">
@@ -64,12 +84,14 @@
                       v-model="employeeForm.phone"
                       label="Phone"
                       required
+                      outlined
+                      dense
                     />
                   </v-col>
                 </v-row>
                 <v-row>
                   <v-col cols="12" class="text-end">
-                    <v-btn color="success" type="submit">
+                    <v-btn color="success" type="submit" class="mr-2">
                       {{ editing ? 'Update' : 'Create' }}
                     </v-btn>
                     <v-btn
@@ -77,7 +99,6 @@
                       type="button"
                       v-if="editing"
                       @click="cancelEdit"
-                      class="ms-2"
                     >
                       Cancel
                     </v-btn>
@@ -87,8 +108,8 @@
             </v-card-text>
           </v-card>
 
-          <v-card class="pa-4 mt-4" elevation="2">
-            <v-card-title>Employee List</v-card-title>
+          <v-card class="pa-4 sleek-card" elevation="4">
+            <v-card-title class="headline">Employee List</v-card-title>
             <v-data-table
               :headers="tableHeaders"
               :items="employees"
@@ -315,5 +336,31 @@ export default {
 </script>
 
 <style scoped>
-/* Add any additional custom styling if needed */
+/* Custom styling for a sleeker look */
+.my-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Increase spacing between cards */
+.sleek-card {
+  margin-bottom: 24px;
+  border-radius: 8px;
+}
+
+/* Adjust typography */
+.headline {
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
+/* Responsive font sizes for data table */
+.v-data-table {
+  font-size: 0.9rem;
+}
+
+/* Add additional spacing and style for buttons if needed */
+.v-btn {
+  text-transform: none;
+}
 </style>
