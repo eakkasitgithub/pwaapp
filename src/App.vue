@@ -216,7 +216,9 @@ export default {
             .insert([{
               employeename: this.employeeForm.employeename,
               age: this.employeeForm.age,
-              phone: this.employeeForm.phone
+              phone: this.employeeForm.phone,
+              createdatetime: now,
+              updatedatetime: now
             }]);
 
           if (error) throw error;
