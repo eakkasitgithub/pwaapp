@@ -119,6 +119,7 @@
               dense
               class="mb-4"
             />
+
             <v-data-table
               :headers="tableHeaders"
               :items="employees"
@@ -126,6 +127,30 @@
               :items-per-page="5"
               class="elevation-1"
             >
+              <!-- Custom Header Slot -->
+              <template #header="{ props }">
+                <thead>
+                  <tr>
+                    <th
+                      v-for="header in props.headers"
+                      :key="header.value"
+                      @click="props.sort(header.value)"
+                      style="cursor: pointer; font-weight: bold; background: #f5f5f5; padding: 8px;"
+                    >
+                      {{ header.text }}
+                      <v-icon small v-if="props.options.sortBy[0] === header.value">
+                        {{
+                          props.options.sortDesc[0]
+                            ? 'mdi-arrow-down'
+                            : 'mdi-arrow-up'
+                        }}
+                      </v-icon>
+                    </th>
+                  </tr>
+                </thead>
+              </template>
+
+              <!-- Item Slots for date formatting and actions -->
               <template #item.createdatetime="{ item }">
                 {{ formatDate(item.createdatetime) }}
               </template>
@@ -179,7 +204,7 @@ export default {
       editing: false,
       // Search query for filtering table data
       searchQuery: '',
-      // Table headers for the data table with sorting enabled
+      // Table headers with sorting enabled
       tableHeaders: [
         { text: 'Employee Name', value: 'employeename', sortable: true },
         { text: 'Age', value: 'age', sortable: true },
