@@ -220,13 +220,13 @@ export default {
           // Create new employee
           const { data, error } = await supabase
             .from('tbemployee')
-            .insert([{
+            .insert({
               employeename: this.employeeForm.employeename,
               age: this.employeeForm.age,
               phone: this.employeeForm.phone,
               createdatetime: now, // Add timestamp for creation
               updatedatetime: now
-            }]);
+            });
 
           if (error) throw error;
           console.log('Employee created successfully:', data);
