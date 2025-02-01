@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <h1>Hello World ไปฉี่ ขี้ ตดเหม็น</h1>
+    <h1>Hello World ไปฉี่ ขี้ ตดเหม็น ใส่หน้า อี่สวย</h1>
     <p>Last saved at: {{ lastSaved }}</p>
   </div>
 </template>
