@@ -156,7 +156,7 @@ export default {
         const { data, error } = await supabase
           .from('tbemployee')
           .select('*')
-          //.is('DeleteDateTime', null)
+          .is('DeleteDateTime', null)
         if (error) {
           console.error('Error fetching employees:', error)
         } else {
