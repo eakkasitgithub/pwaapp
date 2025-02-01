@@ -2,7 +2,7 @@
   <v-app>
     <v-main>
       <v-container class="container-fluid">
-        <!-- Login form (unchanged) -->
+        <!-- Login form -->
         <div v-if="!user" class="row justify-content-center mt-5">
           <div class="col-md-6">
             <div class="card shadow">
@@ -25,7 +25,7 @@
           </div>
         </div>
 
-        <!-- Dashboard (updated to include employee form) -->
+        <!-- Dashboard -->
         <div v-else>
           <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
             <div class="container-fluid">
@@ -183,7 +183,6 @@ export default {
       if (error) console.error('Error fetching employees:', error)
       else this.employees = data
     },
-    // Open the employee form for creating or editing
     openEmployeeForm(employee = null) {
       if (employee) {
         // If editing, populate the form with the employee's data
@@ -196,36 +195,55 @@ export default {
       }
       this.showEmployeeForm = true;
     },
-    // Close the employee form
     closeEmployeeForm() {
       this.showEmployeeForm = false;
     },
-    // Save or update an employee
     async saveEmployee() {
-      if (this.isEditing) {
-        // Update existing employee
-        const { error } = await supabase
-          .from('tbemployee')
-          .update(this.employeeForm)
-          .eq('id', this.employeeForm.id);
-        if (error) console.error('Error updating employee:', error);
-      } else {
-        // Create new employee
-        const { error } = await supabase
-          .from('tbemployee')
-          .insert([this.employeeForm]);
-        if (error) console.error('Error creating employee:', error);
+      try {
+        if (this.isEditing) {
+          // Update existing employee
+          const { data, error } = await supabase
+            .from('tbemployee')
+            .update(this.employeeForm)
+            .eq('id', this.employeeForm.id);
+
+          if (error) throw error;
+          console.log('Employee updated successfully:', data);
+        } else {
+          // Create new employee
+          const { data, error } = await supabase
+            .from('tbemployee')
+            .insert([this.employeeForm]);
+
+          if (error) throw error;
+          console.log('Employee created successfully:', data);
+        }
+
+        await this.fetchEmployees(); // Refresh the employee list
+        this.closeEmployeeForm(); // Close the form
+      } catch (error) {
+        console.error('Error saving employee:', error);
+        alert('Failed to save employee. Check the console for details.');
       }
-      await this.fetchEmployees(); // Refresh the employee list
-      this.closeEmployeeForm(); // Close the form
     },
-    // Edit an employee
     editEmployee(employee) {
       this.openEmployeeForm(employee);
     },
     async deleteEmployee(id) {
-      await supabase.from('tbemployee').update({ deletedatetime: new Date().toISOString() }).eq('id', id)
-      await this.fetchEmployees()
+      if (confirm('Are you sure you want to delete this employee?')) {
+        try {
+          const { error } = await supabase
+            .from('tbemployee')
+            .update({ deletedatetime: new Date().toISOString() })
+            .eq('id', id);
+
+          if (error) throw error;
+          await this.fetchEmployees(); // Refresh the employee list
+        } catch (error) {
+          console.error('Error deleting employee:', error);
+          alert('Failed to delete employee. Check the console for details.');
+        }
+      }
     },
     formatDate(date) {
       return date ? new Date(date).toLocaleString() : ''
