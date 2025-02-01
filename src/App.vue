@@ -109,50 +109,51 @@
 </template>
 
 <script>
-methods: {
-  openEmployeeForm() {
-    this.isEditing = false; // Ensure it's in create mode
-    this.employeeForm = { employeename: '', age: '', phone: '' };
-    this.showEmployeeForm = true;
-  },
-  async saveEmployee() {
-    try {
-      const now = new Date().toISOString();
+export default {
+  methods: {
+    openEmployeeForm() {
+      this.isEditing = false; // Ensure it's in create mode
+      this.employeeForm = { id: null, employeename: '', age: '', phone: '' };
+      this.showEmployeeForm = true;
+    },
+    async saveEmployee() {
+      try {
+        const now = new Date().toISOString();
 
-      if (this.isEditing) {
-        const { data, error } = await supabase
-          .from('tbemployee')
-          .update({
-            employeename: this.employeeForm.employeename,
-            age: this.employeeForm.age,
-            phone: this.employeeForm.phone,
-            updatedatetime: now
-          })
-          .eq('id', this.employeeForm.id);
+        if (this.isEditing) {
+          const { data, error } = await supabase
+            .from('tbemployee')
+            .update({
+              employeename: this.employeeForm.employeename,
+              age: this.employeeForm.age,
+              phone: this.employeeForm.phone,
+              updatedatetime: now
+            })
+            .eq('id', this.employeeForm.id);
 
-        if (error) throw error;
-        console.log('Employee updated successfully:', data);
-      } else {
-        this.isEditing = false; // Ensure it's in create mode
-        const { data, error } = await supabase
-          .from('tbemployee')
-          .insert([{
-            employeename: this.employeeForm.employeename,
-            age: this.employeeForm.age,
-            phone: this.employeeForm.phone,
-            createdatetime: now,
-            updatedatetime: now
-          }]);
+          if (error) throw error;
+          console.log('Employee updated successfully:', data);
+        } else {
+          const { data, error } = await supabase
+            .from('tbemployee')
+            .insert([{
+              employeename: this.employeeForm.employeename,
+              age: this.employeeForm.age,
+              phone: this.employeeForm.phone,
+              createdatetime: now,
+              updatedatetime: now
+            }]);
 
-        if (error) throw error;
-        console.log('Employee created successfully:', data);
+          if (error) throw error;
+          console.log('Employee created successfully:', data);
+        }
+
+        await this.fetchEmployees();
+        this.closeEmployeeForm();
+      } catch (error) {
+        console.error('Error saving employee:', error);
+        alert('Failed to save employee. Check the console for details.');
       }
-
-      await this.fetchEmployees();
-      this.closeEmployeeForm();
-    } catch (error) {
-      console.error('Error saving employee:', error);
-      alert('Failed to save employee. Check the console for details.');
     }
   }
 }
