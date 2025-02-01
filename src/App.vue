@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <h1>Hello World ไปฉี่ แป้บ</h1>
+    <h1>Hello World ไปฉี่ ขี้ด้วย</h1>
     <p>Last saved at: {{ lastSaved }}</p>
   </div>
 </template>
