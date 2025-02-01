@@ -1,73 +1,120 @@
 <template>
-  <div id="app">
-    <!-- If user is not logged in, show the login form -->
-    <div v-if="!user">
-      <h2>Login</h2>
-      <form @submit.prevent="handleLogin">
-        <div>
-          <label for="email">Email:</label>
-          <input id="email" type="email" v-model="loginForm.email" required />
+  <v-app>
+    <v-main>
+      <v-container class="mt-8">
+        <!-- If user is not logged in, show the login form -->
+        <div v-if="!user">
+          <v-card max-width="500" class="mx-auto pa-4" elevation="2">
+            <v-card-title class="justify-center">Login</v-card-title>
+            <v-card-text>
+              <v-form @submit.prevent="handleLogin">
+                <v-text-field
+                  v-model="loginForm.email"
+                  label="Email"
+                  type="email"
+                  required
+                />
+                <v-text-field
+                  v-model="loginForm.password"
+                  label="Password"
+                  type="password"
+                  required
+                />
+                <v-btn color="primary" type="submit" class="mt-2" block>
+                  Login
+                </v-btn>
+              </v-form>
+              <v-alert v-if="loginError" type="error" class="mt-2">
+                {{ loginError }}
+              </v-alert>
+            </v-card-text>
+          </v-card>
         </div>
-        <div>
-          <label for="password">Password:</label>
-          <input id="password" type="password" v-model="loginForm.password" required />
-        </div>
-        <button type="submit">Login</button>
-      </form>
-      <p v-if="loginError" style="color: red;">{{ loginError }}</p>
-    </div>
 
-    <!-- Once logged in, show Employee Management UI -->
-    <div v-else>
-      <button @click="handleLogout">Logout</button>
-      <h1>Employee Management</h1>
-      
-      <!-- Employee Form -->
-      <form @submit.prevent="handleSubmit">
-        <div>
-          <label for="name">Employee Name:</label>
-          <input id="name" type="text" v-model="employeeForm.EmployeeName" required />
+        <!-- Once logged in, show Employee Management UI -->
+        <div v-else>
+          <v-row>
+            <v-col cols="12" class="text-end">
+              <v-btn color="primary" @click="handleLogout">Logout</v-btn>
+            </v-col>
+          </v-row>
+
+          <v-card class="pa-4" elevation="2">
+            <v-card-title>Employee Management</v-card-title>
+            <v-card-text>
+              <v-form @submit.prevent="handleSubmit">
+                <v-row>
+                  <v-col cols="12" sm="4">
+                    <v-text-field
+                      v-model="employeeForm.employeename"
+                      label="Employee Name"
+                      required
+                    />
+                  </v-col>
+                  <v-col cols="12" sm="4">
+                    <v-text-field
+                      v-model.number="employeeForm.age"
+                      label="Age"
+                      type="number"
+                      required
+                    />
+                  </v-col>
+                  <v-col cols="12" sm="4">
+                    <v-text-field
+                      v-model="employeeForm.phone"
+                      label="Phone"
+                      required
+                    />
+                  </v-col>
+                </v-row>
+                <v-row>
+                  <v-col cols="12" class="text-end">
+                    <v-btn color="success" type="submit">
+                      {{ editing ? 'Update' : 'Create' }}
+                    </v-btn>
+                    <v-btn
+                      color="grey"
+                      type="button"
+                      v-if="editing"
+                      @click="cancelEdit"
+                      class="ms-2"
+                    >
+                      Cancel
+                    </v-btn>
+                  </v-col>
+                </v-row>
+              </v-form>
+            </v-card-text>
+          </v-card>
+
+          <v-card class="pa-4 mt-4" elevation="2">
+            <v-card-title>Employee List</v-card-title>
+            <v-data-table
+              :headers="tableHeaders"
+              :items="employees"
+              :items-per-page="5"
+              class="elevation-1"
+            >
+              <template #item.createdatetime="{ item }">
+                {{ formatDate(item.createdatetime) }}
+              </template>
+              <template #item.updatedatetime="{ item }">
+                {{ formatDate(item.updatedatetime) }}
+              </template>
+              <template #item.actions="{ item }">
+                <v-btn icon @click="editEmployee(item)">
+                  <v-icon>mdi-pencil</v-icon>
+                </v-btn>
+                <v-btn icon @click="deleteEmployee(item.id)">
+                  <v-icon>mdi-delete</v-icon>
+                </v-btn>
+              </template>
+            </v-data-table>
+          </v-card>
         </div>
-        <div>
-          <label for="age">Age:</label>
-          <input id="age" type="number" v-model.number="employeeForm.Age" required />
-        </div>
-        <div>
-          <label for="phone">Phone:</label>
-          <input id="phone" type="text" v-model="employeeForm.Phone" required />
-        </div>
-        <button type="submit">{{ editing ? 'Update' : 'Create' }}</button>
-        <button type="button" v-if="editing" @click="cancelEdit">Cancel</button>
-      </form>
-      
-      <!-- Employee Table -->
-      <table>
-        <thead>
-          <tr>
-            <th>Employee Name</th>
-            <th>Age</th>
-            <th>Phone</th>
-            <th>Create Date</th>
-            <th>Update Date</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="employee in employees" :key="employee.id">
-            <td>{{ employee.EmployeeName }}</td>
-            <td>{{ employee.Age }}</td>
-            <td>{{ employee.Phone }}</td>
-            <td>{{ formatDate(employee.CreateDateTime) }}</td>
-            <td>{{ formatDate(employee.UpdateDateTime) }}</td>
-            <td>
-              <button @click="editEmployee(employee)">Edit</button>
-              <button @click="deleteEmployee(employee.id)">Delete</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+      </v-container>
+    </v-main>
+  </v-app>
 </template>
 
 <script>
@@ -75,7 +122,8 @@ import { createClient } from '@supabase/supabase-js'
 
 // Supabase initialization using your provided credentials
 const supabaseUrl = 'https://yrtaklxwrlbatvigvlnl.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlydGFrbHh3cmxiYXR2aWd2bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc1Mjc5MDIsImV4cCI6MjA1MzEwMzkwMn0.8L1UX5CqFYjkr-yznH_nm57fvTcIKAzLbm1-qPnsTfk'
+const supabaseKey =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlydGFrbHh3cmxiYXR2aWd2bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc1Mjc5MDIsImV4cCI6MjA1MzEwMzkwMn0.8L1UX5CqFYjkr-yznH_nm57fvTcIKAzLbm1-qPnsTfk'
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 export default {
@@ -93,45 +141,48 @@ export default {
       employees: [],
       employeeForm: {
         id: null,
-        EmployeeName: '',
-        Age: null,
-        Phone: ''
+        employeename: '',
+        age: null,
+        phone: ''
       },
-      editing: false
+      editing: false,
+      tableHeaders: [
+        { text: 'Employee Name', value: 'employeename' },
+        { text: 'Age', value: 'age' },
+        { text: 'Phone', value: 'phone' },
+        { text: 'Created', value: 'createdatetime' },
+        { text: 'Updated', value: 'updatedatetime' },
+        { text: 'Actions', value: 'actions', sortable: false }
+      ]
     }
   },
-  created() {
-    // Check for an existing session on load
-    const session = supabase.auth.session()
+  async created() {
+    const { data: { session } } = await supabase.auth.getSession()
     if (session) {
       this.user = session.user
       this.fetchEmployees()
     }
-    
-    // Listen for auth state changes
     supabase.auth.onAuthStateChange((event, session) => {
       this.user = session ? session.user : null
       if (this.user) {
         this.fetchEmployees()
       } else {
-        // Clear employees list when signed out
         this.employees = []
       }
     })
   },
   methods: {
-    // Login using Supabase Auth
     async handleLogin() {
       this.loginError = null
       try {
-        const { user, error } = await supabase.auth.signIn({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email: this.loginForm.email,
           password: this.loginForm.password
         })
         if (error) {
           this.loginError = error.message
         } else {
-          this.user = user
+          this.user = data.user
           this.fetchEmployees()
         }
       } catch (err) {
@@ -139,35 +190,33 @@ export default {
         this.loginError = 'Login failed. Please try again.'
       }
     },
-    // Logout
     async handleLogout() {
       try {
         const { error } = await supabase.auth.signOut()
         if (error) {
-          console.error("Error logging out:", error)
+          console.error('Error logging out:', error)
         }
         this.user = null
       } catch (err) {
         console.error('Logout error:', err)
       }
     },
-    // Fetch employee records where DeleteDateTime is null
     async fetchEmployees() {
       try {
         const { data, error } = await supabase
-          .from('tbEmployee')
+          .from('tbemployee')
           .select('*')
-          .is('DeleteDateTime', null)
+          .is('deletedatetime', null)
         if (error) {
           console.error('Error fetching employees:', error)
         } else {
+          console.log('Fetched employees:', data)
           this.employees = data
         }
       } catch (err) {
         console.error('Fetch employees error:', err)
       }
     },
-    // Handle form submission for create/update
     async handleSubmit() {
       if (this.editing) {
         await this.updateEmployee()
@@ -177,57 +226,62 @@ export default {
       this.resetForm()
       await this.fetchEmployees()
     },
-    // Create a new employee record
     async createEmployee() {
       const now = new Date().toISOString()
       try {
-        const { error } = await supabase
-          .from('tbEmployee')
+        console.log('Inserting employee:', {
+          employeename: this.employeeForm.employeename,
+          age: this.employeeForm.age,
+          phone: this.employeeForm.phone,
+          createdatetime: now,
+          updatedatetime: now,
+          deletedatetime: null
+        })
+        const { data, error } = await supabase
+          .from('tbemployee')
           .insert([{
-            EmployeeName: this.employeeForm.EmployeeName,
-            Age: this.employeeForm.Age,
-            Phone: this.employeeForm.Phone,
-            CreateDateTime: now,
-            UpdateDateTime: now,
-            DeleteDateTime: null
+            employeename: this.employeeForm.employeename,
+            age: this.employeeForm.age,
+            phone: this.employeeForm.phone,
+            createdatetime: now,
+            updatedatetime: now,
+            deletedatetime: null
           }])
         if (error) {
           console.error('Error creating employee:', error)
+        } else {
+          console.log('Employee created:', data)
         }
       } catch (err) {
         console.error('Create employee error:', err)
       }
     },
-    // Prepare the form for editing an existing employee
     editEmployee(employee) {
       this.employeeForm = { ...employee }
       this.editing = true
     },
-    // Cancel editing and reset the form
     cancelEdit() {
       this.resetForm()
     },
-    // Reset form values and editing state
     resetForm() {
       this.employeeForm = {
         id: null,
-        EmployeeName: '',
-        Age: null,
-        Phone: ''
+        employeename: '',
+        age: null,
+        phone: ''
       }
       this.editing = false
     },
-    // Update an existing employee record
     async updateEmployee() {
       const now = new Date().toISOString()
       try {
         const { error } = await supabase
-          .from('tbEmployee')
+          .from('tbemployee')
           .update({
-            EmployeeName: this.employeeForm.EmployeeName,
-            Age: this.employeeForm.Age,
-            Phone: this.employeeForm.Phone,
-            UpdateDateTime: now
+            employeename: this.employeeForm.employeename,
+            age: this.employeeForm.age,
+            phone: this.employeeForm.phone,
+            updatedatetime: now
           })
           .eq('id', this.employeeForm.id)
         if (error) {
@@ -237,13 +291,12 @@ export default {
         console.error('Update employee error:', err)
       }
     },
-    // Soft-delete an employee record by setting DeleteDateTime
     async deleteEmployee(id) {
       const now = new Date().toISOString()
       try {
         const { error } = await supabase
-          .from('tbEmployee')
-          .update({ DeleteDateTime: now })
+          .from('tbemployee')
+          .update({ deletedatetime: now })
           .eq('id', id)
         if (error) {
           console.error('Error deleting employee:', error)
@@ -253,7 +306,6 @@ export default {
         console.error('Delete employee error:', err)
       }
     },
-    // Utility to format timestamps
     formatDate(dateString) {
       if (!dateString) return ''
       return new Date(dateString).toLocaleString()
@@ -263,17 +315,5 @@ export default {
 </script>
 
 <style scoped>
-/* Basic styling for the form and table */
-table {
-  border-collapse: collapse;
-  width: 100%;
-  margin-top: 20px;
-}
-th, td {
-  border: 1px solid #ddd;
-  padding: 8px;
-}
-form > div {
-  margin-bottom: 10px;
-}
+/* You can add additional custom styling here if needed */
 </style>
