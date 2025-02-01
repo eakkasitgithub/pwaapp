@@ -1,105 +1,72 @@
 <template>
   <v-app>
     <v-main>
-      <v-container>
-        <!-- If not logged in, show login -->
-        <div v-if="!user">
-          <v-row class="fill-height" align="center" justify="center">
-            <v-col cols="12" sm="8" md="6" lg="4">
-              <v-card class="pa-4 sleek-card elevation-4">
-                <v-card-title class="headline text-center">Login</v-card-title>
-                <v-card-text>
-                  <v-form @submit.prevent="handleLogin">
-                    <v-text-field
-                      v-model="loginForm.email"
-                      label="Email"
-                      type="email"
-                      required
-                      outlined
-                      dense
-                    />
-                    <v-text-field
-                      v-model="loginForm.password"
-                      label="Password"
-                      type="password"
-                      required
-                      outlined
-                      dense
-                    />
-                    <v-btn color="primary" type="submit" class="mt-4" block>
-                      Login
-                    </v-btn>
-                  </v-form>
-                  <v-alert v-if="loginError" type="error" class="mt-4">
-                    {{ loginError }}
-                  </v-alert>
-                </v-card-text>
-              </v-card>
-            </v-col>
-          </v-row>
+      <v-container class="container-fluid">
+        <div v-if="!user" class="row justify-content-center mt-5">
+          <div class="col-md-6">
+            <div class="card shadow">
+              <div class="card-header bg-primary text-white text-center">Login</div>
+              <div class="card-body">
+                <form @submit.prevent="handleLogin">
+                  <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input v-model="loginForm.email" type="email" class="form-control" required>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Password</label>
+                    <input v-model="loginForm.password" type="password" class="form-control" required>
+                  </div>
+                  <button type="submit" class="btn btn-primary w-100">Login</button>
+                </form>
+                <div v-if="loginError" class="alert alert-danger mt-3">{{ loginError }}</div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- If logged in, show Employee Management -->
         <div v-else>
-          <v-row class="mb-4">
-            <v-col cols="12" class="text-end">
-              <v-btn color="primary" @click="handleLogout" outlined>
-                Logout
-              </v-btn>
-            </v-col>
-          </v-row>
+          <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+            <div class="container-fluid">
+              <a class="navbar-brand" href="#">Admin Dashboard</a>
+              <button class="btn btn-outline-light" @click="handleLogout">Logout</button>
+            </div>
+          </nav>
 
-          <!-- Header -->
-          <v-card class="mb-5 elevation-2">
-            <v-card-title class="text-h6 font-weight-bold">Manage Employees</v-card-title>
-          </v-card>
+          <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">Manage Employees</div>
+            <div class="card-body">
+              <button class="btn btn-success mb-3" @click="createEmployee">+ Create New Employee</button>
+              <input v-model="searchQuery" class="form-control mb-3" placeholder="Search Employees">
 
-          <!-- Create New Employee Button -->
-          <v-row class="mb-4">
-            <v-col cols="12">
-              <v-btn color="primary" class="text-capitalize" elevation="2" @click="createEmployee">
-                + Create New Employee
-              </v-btn>
-            </v-col>
-          </v-row>
-
-          <!-- Employee Table -->
-          <v-card elevation="2">
-            <v-card-text>
-              <!-- Search Box -->
-              <v-text-field
-                v-model="searchQuery"
-                label="Search"
-                append-inner-icon="mdi-magnify"
-                outlined
-                dense
-                class="mb-4"
-              />
-
-              <v-data-table
-                :headers="tableHeaders"
-                :items="employees"
-                :search="searchQuery"
-                :items-per-page="5"
-                class="elevation-1"
-              >
-                <template #item.createdatetime="{ item }">
-                  {{ formatDate(item.createdatetime) }}
-                </template>
-                <template #item.updatedatetime="{ item }">
-                  {{ formatDate(item.updatedatetime) }}
-                </template>
-                <template #item.actions="{ item }">
-                  <v-btn color="blue" variant="tonal" small class="mr-2" @click="editEmployee(item)">
-                    Edit
-                  </v-btn>
-                  <v-btn color="red" variant="tonal" small @click="deleteEmployee(item.id)">
-                    Delete
-                  </v-btn>
-                </template>
-              </v-data-table>
-            </v-card-text>
-          </v-card>
+              <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                  <tr>
+                    <th @click="sort('id')">ID</th>
+                    <th @click="sort('employeename')">Employee Name</th>
+                    <th @click="sort('age')">Age</th>
+                    <th @click="sort('phone')">Phone</th>
+                    <th @click="sort('createdatetime')">Created</th>
+                    <th @click="sort('updatedatetime')">Updated</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="employee in filteredEmployees" :key="employee.id">
+                    <td>{{ employee.id }}</td>
+                    <td>{{ employee.employeename }}</td>
+                    <td>{{ employee.age }}</td>
+                    <td>{{ employee.phone }}</td>
+                    <td>{{ formatDate(employee.createdatetime) }}</td>
+                    <td>{{ formatDate(employee.updatedatetime) }}</td>
+                    <td>
+                      <button class="btn btn-sm btn-primary me-2" @click="editEmployee(employee)">Edit</button>
+                      <button class="btn btn-sm btn-danger" @click="deleteEmployee(employee.id)">Delete</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </v-container>
     </v-main>
@@ -109,9 +76,8 @@
 <script>
 import { createClient } from '@supabase/supabase-js'
 
-// 🔹 Supabase Configuration
 const supabaseUrl = 'https://yrtaklxwrlbatvigvlnl.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlydGFrbHh3cmxiYXR2aWd2bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc1Mjc5MDIsImV4cCI6MjA1MzEwMzkwMn0.8L1UX5CqFYjkr-yznH_nm57fvTcIKAzLbm1-qPnsTfk' // Replace with your actual Supabase Key
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlydGFrbHh3cmxiYXR2aWd2bG5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc1Mjc5MDIsImV4cCI6MjA1MzEwMzkwMn0.8L1UX5CqFYjkr-yznH_nm57fvTcIKAzLbm1-qPnsTfk'
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 export default {
@@ -119,29 +85,12 @@ export default {
   data() {
     return {
       user: null,
-      loginForm: {
-        email: '',
-        password: ''
-      },
+      loginForm: { email: '', password: '' },
       loginError: null,
       employees: [],
-      employeeForm: {
-        id: null,
-        employeename: '',
-        age: null,
-        phone: ''
-      },
-      editing: false,
       searchQuery: '',
-      tableHeaders: [
-        { text: 'ID', value: 'id', sortable: true },
-        { text: 'Employee Name', value: 'employeename', sortable: true },
-        { text: 'Age', value: 'age', sortable: true },
-        { text: 'Phone', value: 'phone', sortable: true },
-        { text: 'Created', value: 'createdatetime', sortable: true },
-        { text: 'Updated', value: 'updatedatetime', sortable: true },
-        { text: 'Actions', value: 'actions', sortable: false }
-      ]
+      sortKey: 'id',
+      sortOrder: 'asc'
     }
   },
   async created() {
@@ -156,8 +105,19 @@ export default {
       else this.employees = []
     })
   },
+  computed: {
+    filteredEmployees() {
+      return this.employees.filter(emp =>
+        Object.values(emp).some(value =>
+          String(value).toLowerCase().includes(this.searchQuery.toLowerCase())
+        )
+      ).sort((a, b) => {
+        let modifier = this.sortOrder === 'asc' ? 1 : -1;
+        return a[this.sortKey] > b[this.sortKey] ? modifier : -modifier;
+      });
+    }
+  },
   methods: {
-    // 🔹 Login
     async handleLogin() {
       this.loginError = null
       try {
@@ -171,60 +131,52 @@ export default {
         this.loginError = 'Login failed. Try again.'
       }
     },
-    // 🔹 Logout
     async handleLogout() {
       await supabase.auth.signOut()
       this.user = null
     },
-    // 🔹 Fetch Employees
     async fetchEmployees() {
       const { data, error } = await supabase.from('tbemployee').select('*').is('deletedatetime', null)
       if (error) console.error('Error fetching employees:', error)
       else this.employees = data
     },
-    // 🔹 Create Employee
     createEmployee() {
       console.log('Create Employee Clicked')
     },
-    // 🔹 Edit Employee
     editEmployee(employee) {
       console.log('Edit Employee:', employee)
     },
-    // 🔹 Delete Employee (Soft Delete)
     async deleteEmployee(id) {
       await supabase.from('tbemployee').update({ deletedatetime: new Date().toISOString() }).eq('id', id)
       await this.fetchEmployees()
     },
     formatDate(date) {
       return date ? new Date(date).toLocaleString() : ''
+    },
+    sort(key) {
+      this.sortOrder = this.sortKey === key && this.sortOrder === 'asc' ? 'desc' : 'asc';
+      this.sortKey = key;
     }
   }
 }
 </script>
 
 <style scoped>
-.v-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding-bottom: 40px;
+.container-fluid {
+  padding: 20px;
 }
-
-.sleek-card {
+.card {
   border-radius: 8px;
 }
-
-.headline {
+.navbar-brand {
   font-weight: bold;
-  font-size: 1.5rem;
 }
-
-.v-btn {
+.table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+.btn {
   text-transform: none;
   font-weight: 500;
-}
-
-.v-data-table {
-  border-radius: 8px;
-  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);
 }
 </style>
