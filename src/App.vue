@@ -7,7 +7,7 @@
       <h2>Hello World</h2>
     </main>
   </div>
-  <div id="app">
+  <div id="appx">
     <!-- If user is not logged in, show the login form -->
     <div v-if="!user">
       <h2>Login</h2>
