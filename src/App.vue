@@ -154,7 +154,7 @@ export default {
     async fetchEmployees() {
       try {
         const { data, error } = await supabase
-          .from('tbEmployee')
+          .from('tbemployee')
           .select('*')
           //.is('DeleteDateTime', null)
         if (error) {
@@ -181,7 +181,7 @@ export default {
       const now = new Date().toISOString()
       try {
         const { error } = await supabase
-          .from('tbEmployee')
+          .from('tbemployee')
           .insert([{
             EmployeeName: this.employeeForm.EmployeeName,
             Age: this.employeeForm.Age,
@@ -221,7 +221,7 @@ export default {
       const now = new Date().toISOString()
       try {
         const { error } = await supabase
-          .from('tbEmployee')
+          .from('tbemployee')
           .update({
             EmployeeName: this.employeeForm.EmployeeName,
             Age: this.employeeForm.Age,
@@ -241,7 +241,7 @@ export default {
       const now = new Date().toISOString()
       try {
         const { error } = await supabase
-          .from('tbEmployee')
+          .from('tbemployee')
           .update({ DeleteDateTime: now })
           .eq('id', id)
         if (error) {
