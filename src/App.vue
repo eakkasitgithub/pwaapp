@@ -112,7 +112,7 @@
 methods: {
   openEmployeeForm() {
     this.isEditing = false; // Ensure it's in create mode
-    this.employeeForm = { id: null, employeename: '', age: '', phone: '' };
+    this.employeeForm = { employeename: '', age: '', phone: '' };
     this.showEmployeeForm = true;
   },
   async saveEmployee() {
