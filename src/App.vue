@@ -1,13 +1,5 @@
 <template>
   <div id="app">
-    <header>
-      <h1>Employee Management</h1>
-    </header>
-    <main>
-      <h2>Hello World</h2>
-    </main>
-  </div>
-  <div id="appx">
     <!-- If user is not logged in, show the login form -->
     <div v-if="!user">
       <h2>Login</h2>
@@ -108,9 +100,9 @@ export default {
       editing: false
     }
   },
-  created() {
-    // Check for an existing session on load
-    const session = supabase.auth.session()
+  async created() {
+    // Get the current session using Supabase v2 API
+    const { data: { session } } = await supabase.auth.getSession()
     if (session) {
       this.user = session.user
       this.fetchEmployees()
@@ -122,7 +114,6 @@ export default {
       if (this.user) {
         this.fetchEmployees()
       } else {
-        // Clear employees list when signed out
         this.employees = []
       }
     })
@@ -132,14 +123,14 @@ export default {
     async handleLogin() {
       this.loginError = null
       try {
-        const { user, error } = await supabase.auth.signIn({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email: this.loginForm.email,
           password: this.loginForm.password
         })
         if (error) {
           this.loginError = error.message
         } else {
-          this.user = user
+          this.user = data.user
           this.fetchEmployees()
         }
       } catch (err) {
