@@ -5,8 +5,15 @@
 </template>
 
 <script>
-import L from 'leaflet';
+
+//import L from 'leaflet';
+//import 'leaflet/dist/leaflet.css';
+
+//import L from 'leaflet/dist/leaflet-src.esm.js';
+import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+
 import axios from 'axios';
 
 export default {
@@ -15,7 +22,7 @@ export default {
     return {
       map: null,
       markers: {},
-      token: 'f71c6c0da4d9d9c051af82970b1f421e9ae27d73'
+      token: 'YOUR_API_KEY'
     };
   },
   mounted() {
