@@ -24,7 +24,6 @@ export default {
   mounted() {
     console.log('Component Mounted: Initializing Map...');
     this.initMap();
-    this.fetchAirQualityData();
   },
   methods: {
     initMap() {
@@ -50,6 +49,7 @@ export default {
           }).addTo(this.map);
 
           console.log('Map initialized:', this.map);
+          this.fetchAirQualityData(); // Ensure API call is made only after the map is initialized
         }
       });
     },
