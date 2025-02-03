@@ -36,7 +36,7 @@ export default {
     return {
       map: null,
       markers: {},
-      token: 'YOUR_API_KEY'
+      token: 'f71c6c0da4d9d9c051af82970b1f421e9ae27d73'
     };
   },
   mounted() {
