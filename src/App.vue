@@ -36,7 +36,7 @@ export default {
     return {
       map: null,
       markers: {},
-      token: 'f71c6c0da4d9d9c051af82970b1f421e9ae27d73'
+      token: import.meta.env.VITE_WAQI_TOKEN // Read token from .env file
     };
   },
   mounted() {
