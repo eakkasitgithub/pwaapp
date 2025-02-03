@@ -81,7 +81,18 @@ export default {
         color,
         radius: 10
       }).addTo(this.map);
-      marker.bindTooltip(`AQI: ${aqi}`).openTooltip();
+      marker.bindTooltip(`AQI: ${aqi}`);
+      
+      // Show tooltip on hover
+      marker.on('mouseover', function () {
+        marker.openTooltip();
+      });
+      
+      // Hide tooltip on mouseout
+      marker.on('mouseout', function () {
+        marker.closeTooltip();
+      });
+      
       this.markers[uid] = marker;
     }
   }
@@ -95,3 +106,4 @@ export default {
   border: 1px solid black; /* Add a border to see if the div exists */
 }
 </style>
+ 
