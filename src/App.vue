@@ -11,10 +11,11 @@
 
 //import 'leaflet/dist/leaflet.css?inline';
 
+import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 //import L from 'leaflet/dist/leaflet-src.esm.js';
-// import * as L from 'leaflet';
+//import * as L from 'leaflet';
 //import 'leaflet/dist/leaflet.css';
 
 // Form 1 //
