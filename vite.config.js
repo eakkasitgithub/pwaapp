@@ -7,7 +7,6 @@ import path from 'path';
 export default defineConfig({
   plugins: [
     vue(),
-    // Vuetify plugin configuration
     vuetify({
       autoImport: true,
     }),
@@ -16,8 +15,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      'leaflet': 'leaflet/dist/leaflet.js' // Ensure Vite resolves Leaflet correctly
+      'leaflet': path.resolve(__dirname, 'node_modules/leaflet') // Ensure Vite resolves Leaflet correctly
     },
-    extensions: ['.js', '.json', '.jsx', '.mjs', '.ts', '.tsx', '.vue'] // Allow auto-resolving file extensions
+    extensions: ['.js', '.json', '.jsx', '.mjs', '.ts', '.tsx', '.vue'] // Auto-resolving file extensions
+  },
+  optimizeDeps: {
+    include: ['leaflet'], // Force Vite to optimize Leaflet dependency
   }
 });
