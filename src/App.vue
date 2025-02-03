@@ -1,33 +1,15 @@
 // Install dependencies: npm install vue leaflet axios
 
 <template>
-  <div id="map"></div>
+  <div id="app">
+    <h1>Air Quality Map</h1>
+    <div id="map"></div>
+  </div>
 </template>
 
 <script>
-
-//import L from 'leaflet';
-//import 'leaflet/dist/leaflet.css';
-
-//import 'leaflet/dist/leaflet.css?inline';
-
-import * as L from 'leaflet';
+import * as L from 'leaflet'; // Correct import for Leaflet
 import 'leaflet/dist/leaflet.css';
-
-//import L from 'leaflet/dist/leaflet-src.esm.js';
-//import * as L from 'leaflet';
-//import 'leaflet/dist/leaflet.css';
-
-// Form 1 //
-/*
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-*/
-// Form 2 //
-/*
-import * as L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-*/
 import axios from 'axios';
 
 export default {
@@ -36,59 +18,64 @@ export default {
     return {
       map: null,
       markers: {},
-      //token: import.meta.env.VITE_WAQI_TOKEN // Read token from .env file
-      token: 'f71c6c0da4d9d9c051af82970b1f421e9ae27d73'
+      token: 'f71c6c0da4d9d9c051af82970b1f421e9ae27d73' // Fetch token from .env
     };
   },
   mounted() {
+    console.log('Component Mounted: Initializing Map...');
     this.initMap();
     this.fetchAirQualityData();
   },
   methods: {
     initMap() {
-        console.log('Initializing Leaflet Map...');
+      console.log('Initializing Leaflet Map...');
 
-        // FIX: Prevent Leaflet from using deprecated Mutation Events
+      // FIX: Prevent Leaflet from using deprecated Mutation Events
+      if (L.DomEvent) {
         delete L.DomEvent._detectIE;
+      }
 
-      this.map = L.map('map').setView([13.736717, 100.523186], 10); // Default center (Bangkok)
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(this.map);
+      // Delay map initialization to ensure the DOM is ready
+      this.$nextTick(() => {
+        if (!this.map) {
+          this.map = L.map('map', {
+            center: [13.736717, 100.523186], // Bangkok
+            zoom: 10,
+            zoomAnimation: true,
+            preferCanvas: true
+          });
 
-      this.map.on('moveend', () => {
-        let bounds = this.map.getBounds();
-        let boundsStr = `${bounds.getNorth()},${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()}`;
-        this.populateMarkers(boundsStr);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+          }).addTo(this.map);
+
+          console.log('Map initialized:', this.map);
+        }
       });
     },
     async fetchAirQualityData() {
+      if (!this.map) {
+        console.error('Map is not initialized yet!');
+        return;
+      }
+
+      console.log('Fetching air quality data...');
       try {
         const response = await axios.get(`https://api.waqi.info/v2/map/bounds/?latlng=13.5,100.4,13.9,100.7&token=${this.token}`);
         if (response.data.status === 'ok') {
           response.data.data.forEach(station => {
-            this.addMarker(station.lat, station.lon, station.aqi, station.uid);
+            if (this.map) {
+              this.addMarker(station.lat, station.lon, station.aqi, station.uid);
+            }
           });
+          console.log('Markers added successfully.');
         }
       } catch (error) {
         console.error('Error fetching air quality data:', error);
       }
     },
-    async populateMarkers(bounds) {
-      try {
-        const response = await axios.get(`https://api.waqi.info/v2/map/bounds/?latlng=${bounds}&token=${this.token}`);
-        if (response.data.status === 'ok') {
-          response.data.data.forEach(station => {
-            if (!this.markers[station.uid]) {
-              this.addMarker(station.lat, station.lon, station.aqi, station.uid);
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching markers:', error);
-      }
-    },
     addMarker(lat, lon, aqi, uid) {
+      console.log(`Adding marker at (${lat}, ${lon}) with AQI: ${aqi}`);
       const color = aqi > 100 ? 'red' : 'green';
       const marker = L.circleMarker([lat, lon], {
         color,
@@ -105,5 +92,6 @@ export default {
 #map {
   height: 500px;
   width: 100%;
+  border: 1px solid black; /* Add a border to see if the div exists */
 }
 </style>
