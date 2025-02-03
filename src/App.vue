@@ -45,6 +45,11 @@ export default {
   },
   methods: {
     initMap() {
+        console.log('Initializing Leaflet Map...');
+
+        // FIX: Prevent Leaflet from using deprecated Mutation Events
+        delete L.DomEvent._detectIE;
+
       this.map = L.map('map').setView([13.736717, 100.523186], 10); // Default center (Bangkok)
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
