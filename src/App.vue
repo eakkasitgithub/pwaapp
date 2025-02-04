@@ -119,23 +119,20 @@ export default {
 html, body {
   margin: 0;
   padding: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
 }
 
 .container {
   display: flex;
-  flex-direction: row;
   width: 100vw;
   height: 100vh;
 }
 
 #map-container {
-  flex: 3; /* 75% */
-  height: 100vh;
+  width: 75%;
+  height: 100%;
 }
 
 #map {
@@ -145,8 +142,8 @@ html, body {
 }
 
 #notification-log {
-  flex: 1; /* 25% */
-  height: 100vh;
+  width: 25%;
+  height: 100%;
   padding: 10px;
   border-left: 1px solid #ccc;
   background: #f9f9f9;
