@@ -130,8 +130,16 @@ export default {
       }
     },
     displayMarkers(data) {
+      if (!data || !Array.isArray(data)) {
+        console.error("Invalid data format received", data);
+        return;
+      }
       data.forEach(station => {
-        this.addMarker(station.lat, station.lon, station.aqi, station.uid, station.station);
+        if (typeof this.addMarker === 'function') {
+          this.addMarker(station.lat, station.lon, station.aqi, station.uid, station.station);
+        } else {
+          console.error("addMarker function is not available");
+        }
       });
     },
     addEventLog(message) {
@@ -142,60 +150,3 @@ export default {
   }
 };
 </script>
-
-<style>
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.container {
-  display: flex;
-  flex-direction: column;
-  width: 100vw;
-  height: 100vh;
-}
-
-#map-container {
-  flex: 1;
-  width: 100%;
-}
-
-#map {
-  width: 100%;
-  height: 100%;
-  border: 1px solid black;
-}
-
-#notification-log {
-  flex: 1;
-  width: 100%;
-  height: 100%;
-  padding: 10px;
-  border-top: 1px solid #ccc;
-  background: #f9f9f9;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
-
-#log-container {
-  display: flex;
-  flex-direction: column;
-}
-
-.log-white {
-  background-color: white;
-  padding: 5px;
-}
-
-.log-grey {
-  background-color: lightgrey;
-  padding: 5px;
-}
-</style>
