@@ -34,54 +34,48 @@ export default {
       token: 'f71c6c0da4d9d9c051af82970b1f421e9ae27d73',
       lastBounds: null,
       debounceTimer: null,
-      cache: this.loadCacheFromLocalStorage() // Load cached data from localStorage
+      cache: {} // Load cached data from localStorage after mount
     };
   },
   mounted() {
     console.log('Component Mounted: Initializing Map...');
-    this.initMap();
-    this.setupMutationObserver();
+    this.cache = this.loadCacheFromLocalStorage(); // Load cache
+    this.$nextTick(() => {
+      this.initMap();
+    });
   },
   methods: {
     initMap() {
       console.log('Initializing Leaflet Map...');
+      if (!document.getElementById('map')) {
+        console.error('Map container not found!');
+        return;
+      }
       
       if (L.DomEvent) {
         delete L.DomEvent._detectIE;
       }
 
-      this.$nextTick(() => {
-        if (!this.map) {
-          this.map = L.map('map', {
-            center: [13.736717, 100.523186],
-            zoom: 10,
-            zoomAnimation: true,
-            preferCanvas: true
-          });
+      if (!this.map) {
+        this.map = L.map('map', {
+          center: [13.736717, 100.523186],
+          zoom: 10,
+          zoomAnimation: true,
+          preferCanvas: true
+        });
 
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-          }).addTo(this.map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(this.map);
 
-          this.map.on('moveend', this.debouncedRefreshAirQualityData);
-          console.log('Map initialized:', this.map);
-          this.fetchAirQualityData();
-        }
-      });
-    },
-    setupMutationObserver() {
-      const targetNode = document.body;
-      const config = { childList: true, subtree: true };
-
-      const observer = new MutationObserver(() => {
-        console.log('DOM mutation detected. MutationObserver replaces deprecated event.');
-      });
-
-      observer.observe(targetNode, config);
+        this.map.on('moveend', this.debouncedRefreshAirQualityData);
+        console.log('Map initialized:', this.map);
+        this.fetchAirQualityData();
+      }
     },
     clearMarkers() {
       Object.values(this.markers).forEach(marker => {
-        if (this.map.hasLayer(marker)) {
+        if (this.map && this.map.hasLayer(marker)) {
           this.map.removeLayer(marker);
         }
       });
@@ -160,3 +154,26 @@ export default {
   }
 };
 </script>
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#map-container {
+  width: 100%;
+  height: 75vh;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  border: 1px solid black;
+}
+</style>
