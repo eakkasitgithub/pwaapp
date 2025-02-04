@@ -3,7 +3,15 @@
 <template>
   <div id="app">
     <h1>Air Quality Map</h1>
-    <div id="map"></div>
+    <div class="container">
+      <div id="map-container">
+        <div id="map"></div>
+      </div>
+      <div id="notification-log">
+        <h2>Notification Log</h2>
+        <textarea readonly v-model="notificationLog"></textarea>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -18,6 +26,7 @@ export default {
     return {
       map: null,
       markers: {},
+      notificationLog: '',
       token: 'f71c6c0da4d9d9c051af82970b1f421e9ae27d73' // Fetch token from .env
     };
   },
@@ -69,6 +78,7 @@ export default {
             }
           });
           console.log('Markers added successfully.');
+          this.addEventLog("IQA Data is updated");
         }
       } catch (error) {
         console.error('Error fetching air quality data:', error);
@@ -84,26 +94,57 @@ export default {
       marker.bindTooltip(`AQI: ${aqi}`);
       
       // Show tooltip on hover
-      marker.on('mouseover', function () {
+      marker.on('mouseover', () => {
         marker.openTooltip();
+        this.addEventLog(`Hovered on AQI: ${aqi} at (${lat}, ${lon})`);
       });
       
       // Hide tooltip on mouseout
-      marker.on('mouseout', function () {
+      marker.on('mouseout', () => {
         marker.closeTooltip();
       });
       
       this.markers[uid] = marker;
+    },
+    addEventLog(message) {
+      const now = new Date();
+      const formattedDate = `${String(now.getDate()).padStart(2, '0')}${now.toLocaleString('en-US', { month: 'short' }).toUpperCase()}-${now.toLocaleTimeString()}`;
+      this.notificationLog += `${formattedDate} : ${message}\n`;
     }
   }
 };
 </script>
 
 <style>
-#map {
+.container {
+  display: flex;
   height: 500px;
+}
+
+#map-container {
+  width: 80%;
+  height: 100%;
+}
+
+#map {
   width: 100%;
-  border: 1px solid black; /* Add a border to see if the div exists */
+  height: 100%;
+  border: 1px solid black;
+}
+
+#notification-log {
+  width: 20%;
+  padding: 10px;
+  border-left: 1px solid #ccc;
+  background: #f9f9f9;
+}
+
+#notification-log textarea {
+  width: 100%;
+  height: 100%;
+  resize: none;
+  background: #fff;
+  border: none;
+  padding: 5px;
 }
 </style>
- 
