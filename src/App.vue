@@ -34,12 +34,13 @@ export default {
       token: 'f71c6c0da4d9d9c051af82970b1f421e9ae27d73',
       lastBounds: null,
       debounceTimer: null,
-      cache: {} // Local object cache
+      cache: this.loadCacheFromLocalStorage() // Load cached data from localStorage
     };
   },
   mounted() {
     console.log('Component Mounted: Initializing Map...');
     this.initMap();
+    this.setupMutationObserver();
   },
   methods: {
     initMap() {
@@ -68,6 +69,16 @@ export default {
         }
       });
     },
+    setupMutationObserver() {
+      const targetNode = document.body;
+      const config = { childList: true, subtree: true };
+
+      const observer = new MutationObserver(() => {
+        console.log('DOM mutation detected. MutationObserver replaces deprecated event.');
+      });
+
+      observer.observe(targetNode, config);
+    },
     clearMarkers() {
       Object.values(this.markers).forEach(marker => {
         if (this.map.hasLayer(marker)) {
@@ -80,7 +91,7 @@ export default {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = setTimeout(() => {
         this.refreshAirQualityData();
-      }, 2000); // 2-second delay to reduce API calls
+      }, 2000);
     },
     refreshAirQualityData() {
       if (!this.map) return;
@@ -114,8 +125,9 @@ export default {
       const cacheKey = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
       
       if (this.cache[cacheKey]) {
-        console.log('Using cached data for:', cacheKey);
+        console.log('Using cached data from localStorage for:', cacheKey);
         this.displayMarkers(this.cache[cacheKey]);
+        this.addEventLog("[OLD] IQA Data loaded from cache");
         return;
       }
       
@@ -124,41 +136,21 @@ export default {
         const response = await axios.get(`https://api.waqi.info/v2/map/bounds/?latlng=${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}&token=${this.token}`);
         if (response.data.status === 'ok') {
           this.cache[cacheKey] = response.data.data;
+          this.saveCacheToLocalStorage();
           this.displayMarkers(response.data.data);
           console.log('Markers updated after map movement.');
-          this.addEventLog("IQA Data refreshed after map movement");
+          this.addEventLog("[API] IQA Data refreshed from API");
         }
       } catch (error) {
         console.error('Error fetching air quality data:', error);
       }
     },
-    displayMarkers(data) {
-      if (!data || !Array.isArray(data)) {
-        console.error("Invalid data format received", data);
-        return;
-      }
-      data.forEach(station => {
-        this.addMarker(station.lat, station.lon, station.aqi, station.uid, station.station);
-      });
+    saveCacheToLocalStorage() {
+      localStorage.setItem('iqa_cache', JSON.stringify(this.cache));
     },
-    addMarker(lat, lon, aqi, uid, station) {
-      const marker = L.circleMarker([lat, lon], {
-        color: aqi > 100 ? 'red' : 'green',
-        radius: 10
-      }).addTo(this.map);
-
-      marker.bindTooltip(`Station: ${station?.name || 'Unknown'}<br> AQI: ${aqi}<br> Location: ${lat}, ${lon}`);
-      
-      marker.on('mouseover', () => {
-        marker.openTooltip();
-        this.addEventLog(`Hovered on Station: ${station?.name || 'Unknown'}, AQI: ${aqi}`);
-      });
-      
-      marker.on('mouseout', () => {
-        marker.closeTooltip();
-      });
-      
-      this.markers[uid] = marker;
+    loadCacheFromLocalStorage() {
+      const cachedData = localStorage.getItem('iqa_cache');
+      return cachedData ? JSON.parse(cachedData) : {};
     },
     addEventLog(message) {
       const now = new Date();
@@ -168,25 +160,3 @@ export default {
   }
 };
 </script>
-
-<style>
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-#map-container {
-  width: 100%;
-  height: 75vh;
-}
-
-#map {
-  width: 100%;
-  height: 100%;
-}
-</style>
