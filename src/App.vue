@@ -70,7 +70,9 @@ export default {
     },
     clearMarkers() {
       Object.values(this.markers).forEach(marker => {
-        this.map.removeLayer(marker);
+        if (this.map.hasLayer(marker)) {
+          this.map.removeLayer(marker);
+        }
       });
       this.markers = {};
     },
@@ -78,9 +80,10 @@ export default {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = setTimeout(() => {
         this.refreshAirQualityData();
-      }, 2000); // 2.00 - second delay to reduce API calls
+      }, 2000); // 2-second delay to reduce API calls
     },
     refreshAirQualityData() {
+      if (!this.map) return;
       const bounds = this.map.getBounds();
       
       if (this.lastBounds && this.isBoundsSimilar(bounds, this.lastBounds)) {
@@ -93,7 +96,7 @@ export default {
       this.fetchAirQualityData();
     },
     isBoundsSimilar(newBounds, oldBounds) {
-      const threshold = 0.1; // Define threshold for movement sensitivity
+      const threshold = 0.1;
       return (
         Math.abs(newBounds.getSouth() - oldBounds.getSouth()) < threshold &&
         Math.abs(newBounds.getNorth() - oldBounds.getNorth()) < threshold &&
@@ -135,12 +138,27 @@ export default {
         return;
       }
       data.forEach(station => {
-        if (typeof this.addMarker === 'function') {
-          this.addMarker(station.lat, station.lon, station.aqi, station.uid, station.station);
-        } else {
-          console.error("addMarker function is not available");
-        }
+        this.addMarker(station.lat, station.lon, station.aqi, station.uid, station.station);
       });
+    },
+    addMarker(lat, lon, aqi, uid, station) {
+      const marker = L.circleMarker([lat, lon], {
+        color: aqi > 100 ? 'red' : 'green',
+        radius: 10
+      }).addTo(this.map);
+
+      marker.bindTooltip(`Station: ${station?.name || 'Unknown'}<br> AQI: ${aqi}<br> Location: ${lat}, ${lon}`);
+      
+      marker.on('mouseover', () => {
+        marker.openTooltip();
+        this.addEventLog(`Hovered on Station: ${station?.name || 'Unknown'}, AQI: ${aqi}`);
+      });
+      
+      marker.on('mouseout', () => {
+        marker.closeTooltip();
+      });
+      
+      this.markers[uid] = marker;
     },
     addEventLog(message) {
       const now = new Date();
@@ -150,3 +168,25 @@ export default {
   }
 };
 </script>
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#map-container {
+  width: 100%;
+  height: 75vh;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+}
+</style>
