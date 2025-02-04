@@ -9,7 +9,11 @@
       </div>
       <div id="notification-log">
         <h2>Notification Log</h2>
-        <textarea readonly v-model="notificationLog"></textarea>
+        <div id="log-container">
+          <div v-for="(log, index) in notificationLogs" :key="index" :class="{'log-white': index % 2 === 0, 'log-grey': index % 2 !== 0}">
+            {{ log }}
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -26,7 +30,7 @@ export default {
     return {
       map: null,
       markers: {},
-      notificationLog: '',
+      notificationLogs: [],
       token: 'f71c6c0da4d9d9c051af82970b1f421e9ae27d73' // Fetch token from .env
     };
   },
@@ -109,7 +113,7 @@ export default {
     addEventLog(message) {
       const now = new Date();
       const formattedDate = `${String(now.getDate()).padStart(2, '0')}${now.toLocaleString('en-US', { month: 'short' }).toUpperCase()}-${now.toLocaleTimeString()}`;
-      this.notificationLog += `${formattedDate} : ${message}\n`;
+      this.notificationLogs.unshift(`${formattedDate} : ${message}`); // Add new messages to the top
     }
   }
 };
@@ -153,14 +157,21 @@ html, body {
   background: #f9f9f9;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 
-#notification-log textarea {
-  width: 100%;
-  height: 100%;
-  resize: none;
-  background: #fff;
-  border: none;
+#log-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.log-white {
+  background-color: white;
+  padding: 5px;
+}
+
+.log-grey {
+  background-color: lightgrey;
   padding: 5px;
 }
 </style>
