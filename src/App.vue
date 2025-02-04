@@ -121,17 +121,20 @@ html, body {
   padding: 0;
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
 .container {
   display: flex;
-  height: 100vh;
+  flex-direction: row;
   width: 100vw;
+  height: 100vh;
 }
 
 #map-container {
-  width: 75vw;
+  flex: 3; /* 75% */
   height: 100vh;
 }
 
@@ -142,7 +145,7 @@ html, body {
 }
 
 #notification-log {
-  width: 25vw;
+  flex: 1; /* 25% */
   height: 100vh;
   padding: 10px;
   border-left: 1px solid #ccc;
