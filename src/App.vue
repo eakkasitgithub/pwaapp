@@ -34,12 +34,12 @@ export default {
       token: 'f71c6c0da4d9d9c051af82970b1f421e9ae27d73',
       lastBounds: null,
       debounceTimer: null,
-      cache: {} // Load cached data from localStorage after mount
+      cache: {} 
     };
   },
   mounted() {
     console.log('Component Mounted: Initializing Map...');
-    this.cache = this.loadCacheFromLocalStorage(); // Load cache
+    this.cache = this.loadCacheFromLocalStorage();
     this.$nextTick(() => {
       this.initMap();
     });
@@ -128,16 +128,40 @@ export default {
       console.log('Fetching air quality data for bounds:', bounds);
       try {
         const response = await axios.get(`https://api.waqi.info/v2/map/bounds/?latlng=${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}&token=${this.token}`);
-        if (response.data.status === 'ok') {
+        if (response.data.status === 'ok' && response.data.data.length > 0) {
           this.cache[cacheKey] = response.data.data;
           this.saveCacheToLocalStorage();
           this.displayMarkers(response.data.data);
           console.log('Markers updated after map movement.');
           this.addEventLog("[API] IQA Data refreshed from API");
+        } else {
+          console.warn("No data received from API");
+          this.addEventLog("[API] No new IQA data available");
         }
       } catch (error) {
         console.error('Error fetching air quality data:', error);
       }
+    },
+    displayMarkers(data) {
+      data.forEach(station => {
+        const marker = L.circleMarker([station.lat, station.lon], {
+          color: station.aqi > 100 ? 'red' : 'green',
+          radius: 10
+        }).addTo(this.map);
+        
+        marker.bindTooltip(`Station: ${station.station.name || 'Unknown'}<br> AQI: ${station.aqi}<br> Location: ${station.lat}, ${station.lon}`);
+        
+        marker.on('mouseover', () => {
+          marker.openTooltip();
+          this.addEventLog(`Hovered on ${station.station.name || 'Unknown'}, AQI: ${station.aqi}`);
+        });
+        
+        marker.on('mouseout', () => {
+          marker.closeTooltip();
+        });
+        
+        this.markers[station.uid] = marker;
+      });
     },
     saveCacheToLocalStorage() {
       localStorage.setItem('iqa_cache', JSON.stringify(this.cache));
@@ -154,26 +178,3 @@ export default {
   }
 };
 </script>
-
-<style>
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-#map-container {
-  width: 100%;
-  height: 75vh;
-}
-
-#map {
-  width: 100%;
-  height: 100%;
-  border: 1px solid black;
-}
-</style>
