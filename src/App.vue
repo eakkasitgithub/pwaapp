@@ -126,8 +126,7 @@ html, body {
 
 .container {
   display: flex;
-  width: 100vw;
-  height: 100vh;
+  
 }
 
 #map-container {
