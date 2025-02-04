@@ -118,11 +118,12 @@ export default {
 <style>
 .container {
   display: flex;
-  height: 500px;
+  height: 100vh;
+  width: 100vw;
 }
 
 #map-container {
-  width: 80%;
+  width: 75%;
   height: 100%;
 }
 
@@ -133,10 +134,12 @@ export default {
 }
 
 #notification-log {
-  width: 20%;
+  width: 25%;
   padding: 10px;
   border-left: 1px solid #ccc;
   background: #f9f9f9;
+  display: flex;
+  flex-direction: column;
 }
 
 #notification-log textarea {
