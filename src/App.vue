@@ -31,7 +31,10 @@ export default {
       map: null,
       markers: {},
       notificationLogs: [],
-      token: 'f71c6c0da4d9d9c051af82970b1f421e9ae27d73'
+      token: 'f71c6c0da4d9d9c051af82970b1f421e9ae27d73',
+      lastBounds: null,
+      debounceTimer: null,
+      cache: {} // Local object cache
     };
   },
   mounted() {
@@ -59,64 +62,77 @@ export default {
             attribution: '&copy; OpenStreetMap contributors'
           }).addTo(this.map);
 
+          this.map.on('moveend', this.debouncedRefreshAirQualityData);
           console.log('Map initialized:', this.map);
           this.fetchAirQualityData();
         }
       });
+    },
+    clearMarkers() {
+      Object.values(this.markers).forEach(marker => {
+        this.map.removeLayer(marker);
+      });
+      this.markers = {};
+    },
+    debouncedRefreshAirQualityData() {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = setTimeout(() => {
+        this.refreshAirQualityData();
+      }, 2000); // 2.00 - second delay to reduce API calls
+    },
+    refreshAirQualityData() {
+      const bounds = this.map.getBounds();
+      
+      if (this.lastBounds && this.isBoundsSimilar(bounds, this.lastBounds)) {
+        console.log("Bounds haven't changed significantly, skipping API call.");
+        return;
+      }
+      
+      this.lastBounds = bounds;
+      this.clearMarkers();
+      this.fetchAirQualityData();
+    },
+    isBoundsSimilar(newBounds, oldBounds) {
+      const threshold = 0.1; // Define threshold for movement sensitivity
+      return (
+        Math.abs(newBounds.getSouth() - oldBounds.getSouth()) < threshold &&
+        Math.abs(newBounds.getNorth() - oldBounds.getNorth()) < threshold &&
+        Math.abs(newBounds.getWest() - oldBounds.getWest()) < threshold &&
+        Math.abs(newBounds.getEast() - oldBounds.getEast()) < threshold
+      );
     },
     async fetchAirQualityData() {
       if (!this.map) {
         console.error('Map is not initialized yet!');
         return;
       }
-
-      console.log('Fetching air quality data...');
+      
+      const bounds = this.map.getBounds();
+      const cacheKey = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
+      
+      if (this.cache[cacheKey]) {
+        console.log('Using cached data for:', cacheKey);
+        this.displayMarkers(this.cache[cacheKey]);
+        return;
+      }
+      
+      console.log('Fetching air quality data for bounds:', bounds);
       try {
-        const response = await axios.get(`https://api.waqi.info/v2/map/bounds/?latlng=13.5,100.4,13.9,100.7&token=${this.token}`);
+        const response = await axios.get(`https://api.waqi.info/v2/map/bounds/?latlng=${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}&token=${this.token}`);
         if (response.data.status === 'ok') {
-          response.data.data.forEach(station => {
-            if (this.map) {
-              this.addMarker(station.lat, station.lon, station.aqi, station.uid, station.station);
-            }
-          });
-          console.log('Markers added successfully.');
-          this.addEventLog("IQA Data is updated");
+          this.cache[cacheKey] = response.data.data;
+          this.displayMarkers(response.data.data);
+          console.log('Markers updated after map movement.');
+          this.addEventLog("IQA Data refreshed after map movement");
         }
       } catch (error) {
         console.error('Error fetching air quality data:', error);
       }
     },
-    async fetchLocationDetails(lat, lon) {
-      try {
-        const response = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
-        return response.data.address || {};
-      } catch (error) {
-        console.error('Error fetching location details:', error);
-        return {};
-      }
-    },
-    async addMarker(lat, lon, aqi, uid, station) {
-      console.log(`Adding marker at (${lat}, ${lon}) with AQI: ${aqi}`);
-      const color = aqi > 100 ? 'red' : 'green';
-      const marker = L.circleMarker([lat, lon], {
-        color,
-        radius: 10
-      }).addTo(this.map);
-
-      const location = await this.fetchLocationDetails(lat, lon);
-      const locationText = `${location.road || ''}, ${location.suburb || ''}, ${location.city || ''}, ${location.state || ''}, ${location.country || ''}`.replace(/, ,/g, ',');
-      marker.bindTooltip(`Station: ${station.name}<br> AQI: ${aqi}<br> Location: ${lat}, ${lon}<br> ${locationText}`);
-      
-      marker.on('mouseover', () => {
-        marker.openTooltip();
-        this.addEventLog(`Hovered on Station: ${station.name}, AQI: ${aqi}, Location: ${locationText}`);
+    displayMarkers(data) {
+      data.forEach(station => {
+        this.addMarker(station.lat, station.lon, station.aqi, station.uid, station.station);
       });
-      
-      marker.on('mouseout', () => {
-        marker.closeTooltip();
-      });
-      
-      this.markers[uid] = marker;
     },
     addEventLog(message) {
       const now = new Date();
