@@ -20,7 +20,7 @@
 </template>
 
 <script>
-import * as L from 'leaflet'; // Correct import for Leaflet
+import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
 
@@ -31,7 +31,7 @@ export default {
       map: null,
       markers: {},
       notificationLogs: [],
-      token: 'f71c6c0da4d9d9c051af82970b1f421e9ae27d73' // Fetch token from .env
+      token: 'f71c6c0da4d9d9c051af82970b1f421e9ae27d73'
     };
   },
   mounted() {
@@ -41,17 +41,15 @@ export default {
   methods: {
     initMap() {
       console.log('Initializing Leaflet Map...');
-
-      // FIX: Prevent Leaflet from using deprecated Mutation Events
+      
       if (L.DomEvent) {
         delete L.DomEvent._detectIE;
       }
 
-      // Delay map initialization to ensure the DOM is ready
       this.$nextTick(() => {
         if (!this.map) {
           this.map = L.map('map', {
-            center: [13.736717, 100.523186], // Bangkok
+            center: [13.736717, 100.523186],
             zoom: 10,
             zoomAnimation: true,
             preferCanvas: true
@@ -62,7 +60,7 @@ export default {
           }).addTo(this.map);
 
           console.log('Map initialized:', this.map);
-          this.fetchAirQualityData(); // Ensure API call is made only after the map is initialized
+          this.fetchAirQualityData();
         }
       });
     },
@@ -78,7 +76,7 @@ export default {
         if (response.data.status === 'ok') {
           response.data.data.forEach(station => {
             if (this.map) {
-              this.addMarker(station.lat, station.lon, station.aqi, station.uid);
+              this.addMarker(station.lat, station.lon, station.aqi, station.uid, station.station);
             }
           });
           console.log('Markers added successfully.');
@@ -88,22 +86,32 @@ export default {
         console.error('Error fetching air quality data:', error);
       }
     },
-    addMarker(lat, lon, aqi, uid) {
+    async fetchLocationDetails(lat, lon) {
+      try {
+        const response = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+        return response.data.address || {};
+      } catch (error) {
+        console.error('Error fetching location details:', error);
+        return {};
+      }
+    },
+    async addMarker(lat, lon, aqi, uid, station) {
       console.log(`Adding marker at (${lat}, ${lon}) with AQI: ${aqi}`);
       const color = aqi > 100 ? 'red' : 'green';
       const marker = L.circleMarker([lat, lon], {
         color,
         radius: 10
       }).addTo(this.map);
-      marker.bindTooltip(`AQI: ${aqi}`);
+
+      const location = await this.fetchLocationDetails(lat, lon);
+      const locationText = `${location.road || ''}, ${location.suburb || ''}, ${location.city || ''}, ${location.state || ''}, ${location.country || ''}`.replace(/, ,/g, ',');
+      marker.bindTooltip(`Station: ${station.name}<br> AQI: ${aqi}<br> Location: ${lat}, ${lon}<br> ${locationText}`);
       
-      // Show tooltip on hover
       marker.on('mouseover', () => {
         marker.openTooltip();
-        this.addEventLog(`Hovered on AQI: ${aqi} at (${lat}, ${lon})`);
+        this.addEventLog(`Hovered on Station: ${station.name}, AQI: ${aqi}, Location: ${locationText}`);
       });
       
-      // Hide tooltip on mouseout
       marker.on('mouseout', () => {
         marker.closeTooltip();
       });
@@ -113,7 +121,7 @@ export default {
     addEventLog(message) {
       const now = new Date();
       const formattedDate = `${String(now.getDate()).padStart(2, '0')}${now.toLocaleString('en-US', { month: 'short' }).toUpperCase()}-${now.toLocaleTimeString()}`;
-      this.notificationLogs.unshift(`${formattedDate} : ${message}`); // Add new messages to the top
+      this.notificationLogs.unshift(`${formattedDate} : ${message}`);
     }
   }
 };
