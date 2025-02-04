@@ -122,17 +122,20 @@ html, body {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .container {
   display: flex;
+  flex-direction: column;
   width: 100vw;
   height: 100vh;
 }
 
 #map-container {
-  width: 75%;
-  height: 100%;
+  flex: 1;
+  width: 100%;
 }
 
 #map {
@@ -142,10 +145,11 @@ html, body {
 }
 
 #notification-log {
-  width: 25%;
+  flex: 1;
+  width: 100%;
   height: 100%;
   padding: 10px;
-  border-left: 1px solid #ccc;
+  border-top: 1px solid #ccc;
   background: #f9f9f9;
   display: flex;
   flex-direction: column;
