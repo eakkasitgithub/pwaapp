@@ -1,5 +1,5 @@
 // Install Vue.js, Vue-Leaflet, and Axios before running this code
-// npm install vue-leaflet leaflet axios
+// npm install @vue-leaflet/vue-leaflet leaflet axios
 
 <template>
   <div id="app">
@@ -27,7 +27,7 @@
 </template>
 
 <script>
-import { LMap, LTileLayer, LMarker, LPopup } from 'vue-leaflet';
+import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet';
 import 'leaflet/dist/leaflet.css';
 import axios from 'axios';
 
