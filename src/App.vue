@@ -1,180 +1,120 @@
-// Install dependencies: npm install vue leaflet axios
+// Install Vue.js, Vue2-Leaflet, and Axios before running this code
+// npm install vue leaflet vue2-leaflet axios
 
 <template>
   <div id="app">
-    <h1>Air Quality Map</h1>
-    <div class="container">
-      <div id="map-container">
-        <div id="map"></div>
-      </div>
-      <div id="notification-log">
-        <h2>Notification Log</h2>
-        <div id="log-container">
-          <div v-for="(log, index) in notificationLogs" :key="index" :class="{'log-white': index % 2 === 0, 'log-grey': index % 2 !== 0}">
-            {{ log }}
-          </div>
-        </div>
-      </div>
+    <l-map @click="onMapClick" @contextmenu="onRightClick" :zoom="zoom" :center="center" style="height: 100vh;">
+      <l-tile-layer :url="tileUrl" :attribution="tileAttribution" />
+      <l-marker v-for="(marker, index) in markers" :key="index" :lat-lng="[marker.lat, marker.lng]">
+        <l-popup>{{ marker.name }}<br>Carbon Rate: {{ marker.carbonRate }}</l-popup>
+      </l-marker>
+    </l-map>
+
+    <div v-if="showDialog" class="dialog">
+      <h3>Add Location</h3>
+      <label>Name: <input v-model="newMarker.name" /></label>
+      <label>Latitude: <input v-model="newMarker.lat" disabled /></label>
+      <label>Longitude: <input v-model="newMarker.lng" disabled /></label>
+      <label>Carbon Rate: <input v-model="newMarker.carbonRate" type="number" /></label>
+      <button @click="addMarker">Save</button>
+      <button @click="showDialog = false">Cancel</button>
+    </div>
+
+    <div v-if="showDeleteMenu" class="delete-menu" :style="{ top: menuY + 'px', left: menuX + 'px' }">
+      <button @click="confirmDelete">Delete Marker</button>
     </div>
   </div>
 </template>
 
 <script>
-import * as L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { LMap, LTileLayer, LMarker, LPopup } from 'vue2-leaflet';
 import axios from 'axios';
 
 export default {
-  name: 'AirQualityMap',
+  components: { LMap, LTileLayer, LMarker, LPopup },
   data() {
     return {
-      map: null,
-      markers: {},
-      notificationLogs: [],
-      token: 'f71c6c0da4d9d9c051af82970b1f421e9ae27d73',
-      lastBounds: null,
-      debounceTimer: null,
-      cache: {} 
+      zoom: 10,
+      center: [13.736717, 100.523186], // Default location (Bangkok)
+      tileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      tileAttribution: '&copy; OpenStreetMap contributors',
+      markers: [],
+      showDialog: false,
+      newMarker: { name: '', lat: 0, lng: 0, carbonRate: 0 },
+      showDeleteMenu: false,
+      selectedMarkerIndex: null,
+      menuX: 0,
+      menuY: 0,
     };
   },
-  mounted() {
-    console.log('Component Mounted: Initializing Map...');
-    this.cache = this.loadCacheFromLocalStorage();
-    this.$nextTick(() => {
-      this.initMap();
-    });
-  },
   methods: {
-    initMap() {
-      console.log('Initializing Leaflet Map...');
-      if (!document.getElementById('map')) {
-        console.error('Map container not found!');
-        return;
-      }
-      
-      if (L.DomEvent) {
-        delete L.DomEvent._detectIE;
-      }
-
-      if (!this.map) {
-        this.map = L.map('map', {
-          center: [13.736717, 100.523186],
-          zoom: 10,
-          zoomAnimation: true,
-          preferCanvas: true
-        });
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(this.map);
-
-        this.map.on('moveend', this.debouncedRefreshAirQualityData);
-        console.log('Map initialized:', this.map);
-        this.fetchAirQualityData();
-      }
-    },
-    clearMarkers() {
-      Object.values(this.markers).forEach(marker => {
-        if (this.map && this.map.hasLayer(marker)) {
-          this.map.removeLayer(marker);
-        }
-      });
-      this.markers = {};
-    },
-    debouncedRefreshAirQualityData() {
-      clearTimeout(this.debounceTimer);
-      this.debounceTimer = setTimeout(() => {
-        this.refreshAirQualityData();
-      }, 2000);
-    },
-    refreshAirQualityData() {
-      if (!this.map) return;
-      const bounds = this.map.getBounds();
-      
-      if (this.lastBounds && this.isBoundsSimilar(bounds, this.lastBounds)) {
-        console.log("Bounds haven't changed significantly, skipping API call.");
-        return;
-      }
-      
-      this.lastBounds = bounds;
-      this.clearMarkers();
-      this.fetchAirQualityData();
-    },
-    isBoundsSimilar(newBounds, oldBounds) {
-      const threshold = 0.1;
-      return (
-        Math.abs(newBounds.getSouth() - oldBounds.getSouth()) < threshold &&
-        Math.abs(newBounds.getNorth() - oldBounds.getNorth()) < threshold &&
-        Math.abs(newBounds.getWest() - oldBounds.getWest()) < threshold &&
-        Math.abs(newBounds.getEast() - oldBounds.getEast()) < threshold
-      );
-    },
-    async fetchAirQualityData() {
-      if (!this.map) {
-        console.error('Map is not initialized yet!');
-        return;
-      }
-      
-      const bounds = this.map.getBounds();
-      const cacheKey = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
-      
-      if (this.cache[cacheKey]) {
-        console.log('Using cached data from localStorage for:', cacheKey);
-        this.displayMarkers(this.cache[cacheKey]);
-        this.addEventLog("[OLD] IQA Data loaded from cache");
-        return;
-      }
-      
-      console.log('Fetching air quality data for bounds:', bounds);
+    async fetchMarkers() {
       try {
-        const response = await axios.get(`https://api.waqi.info/v2/map/bounds/?latlng=${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}&token=${this.token}`);
-        if (response.data.status === 'ok' && response.data.data.length > 0) {
-          this.cache[cacheKey] = response.data.data;
-          this.saveCacheToLocalStorage();
-          this.displayMarkers(response.data.data);
-          console.log('Markers updated after map movement.');
-          this.addEventLog("[API] IQA Data refreshed from API");
-        } else {
-          console.warn("No data received from API");
-          this.addEventLog("[API] No new IQA data available");
-        }
+        const response = await axios.get('YOUR_GOOGLE_SHEETS_API_URL');
+        this.markers = response.data;
       } catch (error) {
-        console.error('Error fetching air quality data:', error);
+        console.error('Error fetching markers:', error);
       }
     },
-    displayMarkers(data) {
-      data.forEach(station => {
-        const marker = L.circleMarker([station.lat, station.lon], {
-          color: station.aqi > 100 ? 'red' : 'green',
-          radius: 10
-        }).addTo(this.map);
-        
-        marker.bindTooltip(`Station: ${station.station.name || 'Unknown'}<br> AQI: ${station.aqi}<br> Location: ${station.lat}, ${station.lon}`);
-        
-        marker.on('mouseover', () => {
-          marker.openTooltip();
-          this.addEventLog(`Hovered on ${station.station.name || 'Unknown'}, AQI: ${station.aqi}`);
-        });
-        
-        marker.on('mouseout', () => {
-          marker.closeTooltip();
-        });
-        
-        this.markers[station.uid] = marker;
-      });
+    onMapClick(e) {
+      this.newMarker.lat = e.latlng.lat;
+      this.newMarker.lng = e.latlng.lng;
+      this.showDialog = true;
     },
-    saveCacheToLocalStorage() {
-      localStorage.setItem('iqa_cache', JSON.stringify(this.cache));
+    async addMarker() {
+      try {
+        await axios.post('YOUR_GOOGLE_SHEETS_API_URL', this.newMarker);
+        this.markers.push({ ...this.newMarker });
+        this.showDialog = false;
+        this.newMarker = { name: '', lat: 0, lng: 0, carbonRate: 0 };
+      } catch (error) {
+        console.error('Error adding marker:', error);
+      }
     },
-    loadCacheFromLocalStorage() {
-      const cachedData = localStorage.getItem('iqa_cache');
-      return cachedData ? JSON.parse(cachedData) : {};
+    onRightClick(e) {
+      const markerIndex = this.markers.findIndex(m => Math.abs(m.lat - e.latlng.lat) < 0.0001 && Math.abs(m.lng - e.latlng.lng) < 0.0001);
+      if (markerIndex !== -1) {
+        this.selectedMarkerIndex = markerIndex;
+        this.menuX = e.originalEvent.pageX;
+        this.menuY = e.originalEvent.pageY;
+        this.showDeleteMenu = true;
+      }
     },
-    addEventLog(message) {
-      const now = new Date();
-      const formattedDate = `${String(now.getDate()).padStart(2, '0')}${now.toLocaleString('en-US', { month: 'short' }).toUpperCase()}-${now.toLocaleTimeString()}`;
-      this.notificationLogs.unshift(`${formattedDate} : ${message}`);
-    }
+    async confirmDelete() {
+      if (this.selectedMarkerIndex !== null) {
+        try {
+          await axios.delete('YOUR_GOOGLE_SHEETS_API_URL', { data: this.markers[this.selectedMarkerIndex] });
+          this.markers.splice(this.selectedMarkerIndex, 1);
+        } catch (error) {
+          console.error('Error deleting marker:', error);
+        }
+      }
+      this.showDeleteMenu = false;
+    },
+  },
+  mounted() {
+    this.fetchMarkers();
   }
 };
 </script>
+
+<style>
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+.delete-menu {
+  position: absolute;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 5px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+</style>
